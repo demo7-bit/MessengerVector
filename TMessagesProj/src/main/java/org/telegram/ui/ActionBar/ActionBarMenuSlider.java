@@ -34,7 +34,6 @@ import android.view.ViewConfiguration;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.FrameLayout;
 
-import androidx.core.graphics.ColorUtils;
 import androidx.core.math.MathUtils;
 
 import org.telegram.messenger.AndroidUtilities;
@@ -327,6 +326,10 @@ public class ActionBarMenuSlider extends FrameLayout {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
+        if (!drawBlur) {
+            fillPaint.setColor(getColorValue(value));
+        }
+
         AndroidUtilities.rectTmp.set(getPaddingLeft(), getPaddingTop(), getWidth() - getPaddingRight(), getHeight() - getPaddingBottom());
         if (drawShadow) {
             canvas.drawRoundRect(AndroidUtilities.rectTmp, dp(roundRadiusDp), dp(roundRadiusDp), shadowPaint);
@@ -611,12 +614,7 @@ public class ActionBarMenuSlider extends FrameLayout {
 
         @Override
         protected int getColorValue(float value) {
-            final float speed = MIN_SPEED + value * (MAX_SPEED - MIN_SPEED);
-            return ColorUtils.blendARGB(
-                Theme.getColor(Theme.key_color_lightblue, resourcesProvider),
-                Theme.getColor(Theme.key_color_blue, resourcesProvider),
-                MathUtils.clamp((speed - 1f) / (2f - 1f), 0, 1)
-            );
+            return Theme.getColorWithBrandFallback(Theme.key_player_progress, resourcesProvider);
         }
 
         @Override

@@ -317,7 +317,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             canvas.drawRoundRect(
                     x - sWidth / 2f, (getHeight() - sHeight) / 2f,
                     x + sWidth / 2f, (getHeight() + sHeight) / 2f,
-                    sHeight / 2f, sHeight / 2f, selectorPaint);
+                    dp(Theme.MODERN_FIELD_RADIUS_DP), dp(Theme.MODERN_FIELD_RADIUS_DP), selectorPaint);
         }
 
         super.dispatchDraw(canvas);

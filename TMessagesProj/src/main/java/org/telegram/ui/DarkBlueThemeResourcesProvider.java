@@ -6,7 +6,7 @@ import org.telegram.ui.Stories.DarkThemeResourceProvider;
 public class DarkBlueThemeResourcesProvider extends DarkThemeResourceProvider {
 
     public DarkBlueThemeResourcesProvider() {
-        super();
+        super(true);
 
         sparseIntArray.put(Theme.key_windowBackgroundWhite, 0xff222b33);
         sparseIntArray.put(Theme.key_dialogBackground, 0xff222B33);

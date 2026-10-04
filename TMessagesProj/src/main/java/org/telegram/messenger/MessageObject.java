@@ -90,6 +90,7 @@ import org.telegram.ui.Components.URLSpanNoUnderline;
 import org.telegram.ui.Components.URLSpanNoUnderlineBold;
 import org.telegram.ui.Components.URLSpanReplacement;
 import org.telegram.ui.Components.URLSpanUserMention;
+import org.telegram.ui.Components.VekkiMathFormatter;
 import org.telegram.ui.Components.VideoPlayer;
 import org.telegram.ui.Components.WebPlayerView;
 import org.telegram.ui.Components.poll.PollAttachedMediaPack;
@@ -361,6 +362,7 @@ public class MessageObject {
     public boolean messageTrimmedToHighlightCut = true;
     public CharSequence messageTrimmedToHighlight;
     public int parentWidth;
+    public boolean useCustomParentWidth;
 
     public ImageLocation mediaThumb;
     public ImageLocation mediaSmallThumb;
@@ -6753,7 +6755,9 @@ public class MessageObject {
             return false;
         }
         if (layoutCreated) {
-            int newMinSize = AndroidUtilities.isTablet() ? AndroidUtilities.getMinTabletSide() : AndroidUtilities.displaySize.x;
+            int newMinSize = useCustomParentWidth && parentWidth > 0
+                    ? parentWidth
+                    : AndroidUtilities.isTablet() ? AndroidUtilities.getMinTabletSide() : AndroidUtilities.displaySize.x;
             float newFontSize = Theme.chat_msgTextPaint != null ? Theme.chat_msgTextPaint.getTextSize() : 0;
             if (Math.abs(generatedWithMinSize - newMinSize) > dp(52) || generatedWithDensity != AndroidUtilities.density || generatedWithFontSize != newFontSize) {
                 layoutCreated = false;
@@ -7633,6 +7637,7 @@ public class MessageObject {
                 addUrlsByPattern(isOutOwner(), caption, true, 4, (int) getDuration(), false);
             }
             applyTimestampsHighlightForReplyMsg(caption);
+            caption = VekkiMathFormatter.apply(this, caption, Theme.chat_msgTextPaint, getMaxMessageTextWidth());
         }
     }
 
@@ -8399,7 +8404,7 @@ public class MessageObject {
     }
 
     private int getParentWidth() {
-        if (preview && parentWidth > 0)
+        if ((preview || useCustomParentWidth) && parentWidth > 0)
             return parentWidth;
         if (AndroidUtilities.isTablet())
             return AndroidUtilities.getMinTabletSide();
@@ -8665,6 +8670,7 @@ public class MessageObject {
             paint = Theme.chat_msgTextPaint;
         }
 
+        messageText = VekkiMathFormatter.apply(this, messageText, paint, maxWidth);
         CharSequence text = messageText;
         try {
             textLayoutOriginalWidth = maxWidth;

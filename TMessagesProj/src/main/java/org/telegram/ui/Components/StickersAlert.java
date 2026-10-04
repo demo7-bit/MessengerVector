@@ -2108,7 +2108,7 @@ public class StickersAlert extends BottomSheet implements NotificationCenter.Not
         if (onClickListener == null) {
             pickerBottomLayout.setAlpha(0f);
         } else if (backgroundColorKey >= 0 && backgroundSelectorColorKey >= 0) {
-            pickerBottomLayout.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(24), getThemedColor(backgroundColorKey), getThemedColor(backgroundSelectorColorKey)));
+            pickerBottomLayout.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(Theme.MODERN_BUTTON_RADIUS_DP), getThemedColor(backgroundColorKey), getThemedColor(backgroundSelectorColorKey)));
             pickerBottomFrameLayout.setBackgroundColor(getThemedColor(Theme.key_dialogBackground));
             params.leftMargin = params.topMargin = params.rightMargin = params.bottomMargin = dp(8);
             emptyParams.bottomMargin = gridParams.bottomMargin = shadowParams.bottomMargin = dp(64);

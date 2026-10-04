@@ -170,13 +170,6 @@ public class VoIPToggleButton extends FrameLayout {
                 }
                 icon[0].setAlpha(255);
 
-                if (replaceProgress != 0 && iconChangeColor) {
-                    int color = ColorUtils.blendARGB(replaceColorFrom, currentIconColor, replaceProgress);
-                    icon[0].setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.MULTIPLY));
-                    crossPaint.setColor(color);
-                }
-                icon[0].setAlpha(255);
-
                 if (drawCross && crossProgress < 1f) {
                     crossProgress += 0.08f;
                     if (crossProgress > 1f) {

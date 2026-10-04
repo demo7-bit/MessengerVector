@@ -80,8 +80,9 @@ public class StoryLinkSheet extends BottomSheetWithRecyclerListView implements N
         urlEditText.whenHitEnter(this::processDone);
 
         String def = "https://";
-        urlEditText.editText.setHandlesColor(0xFF419FE8);
-        urlEditText.editText.setCursorColor(0xff54a1db);
+        int textColor = getThemedColor(Theme.key_windowBackgroundWhiteBlueText2);
+        urlEditText.editText.setHandlesColor(textColor);
+        urlEditText.editText.setCursorColor(textColor);
         urlEditText.editText.setText(def);
         urlEditText.editText.setSelection(def.length());
         TextView pasteTextView = new TextView(getContext());
@@ -90,7 +91,6 @@ public class StoryLinkSheet extends BottomSheetWithRecyclerListView implements N
         pasteTextView.setText(getString(R.string.Paste));
         pasteTextView.setPadding(dp(10), 0, dp(10), 0);
         pasteTextView.setGravity(Gravity.CENTER);
-        int textColor = getThemedColor(Theme.key_windowBackgroundWhiteBlueText2);
         pasteTextView.setTextColor(textColor);
         pasteTextView.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(6), Theme.multAlpha(textColor, .12f), Theme.multAlpha(textColor, .15f)));
         ScaleStateListAnimator.apply(pasteTextView, .1f, 1.5f);
@@ -430,20 +430,21 @@ public class StoryLinkSheet extends BottomSheetWithRecyclerListView implements N
         private final SpannableString titleLoading;
         private final SpannableString messageLoading;
 
-        public WebpagePreviewView(Context context) {
+        public WebpagePreviewView(Context context, Theme.ResourcesProvider resourcesProvider) {
             super(context);
             setWillNotDraw(false);
 
             separatorPaint.setColor(0xFF000000);
+            int accentColor = Theme.getColor(Theme.key_windowBackgroundWhiteBlueText2, resourcesProvider);
 
             imageView = new ImageView(context);
             imageView.setScaleType(ImageView.ScaleType.CENTER);
             imageView.setImageResource(R.drawable.filled_link);
-            imageView.setColorFilter(new PorterDuffColorFilter(0xFF1A9CFF, PorterDuff.Mode.SRC_IN));
+            imageView.setColorFilter(new PorterDuffColorFilter(accentColor, PorterDuff.Mode.SRC_IN));
             addView(imageView, LayoutHelper.createFrame(48, 48, Gravity.CENTER_VERTICAL | Gravity.LEFT, 9, 0, 0, 0));
 
             loadingView = new ImageView(context);
-            loadingView.setBackground(new CircularProgressDrawable(dp(20), dp(2.4f), 0xFF1A9CFF) {
+            loadingView.setBackground(new CircularProgressDrawable(dp(20), dp(2.4f), accentColor) {
                 @Override
                 public int getIntrinsicHeight() {
                     return dp(26);
@@ -457,7 +458,7 @@ public class StoryLinkSheet extends BottomSheetWithRecyclerListView implements N
             addView(loadingView, LayoutHelper.createFrame(48, 48, Gravity.CENTER_VERTICAL | Gravity.LEFT, 9, 0, 0, 0));
 
             titleView = new AnimatedTextView(context);
-            titleView.setTextColor(0xFF1A9CFF);
+            titleView.setTextColor(accentColor);
             titleView.setTextSize(dp(14.21f));
             titleView.setTypeface(AndroidUtilities.bold());
             titleView.setEllipsizeByGradient(true);
@@ -536,7 +537,7 @@ public class StoryLinkSheet extends BottomSheetWithRecyclerListView implements N
             static { setup(new Factory()); }
             @Override
             public WebpagePreviewView createView(Context context, RecyclerListView listView, int currentAccount, int classGuid, Theme.ResourcesProvider resourcesProvider) {
-                return new WebpagePreviewView(context);
+                return new WebpagePreviewView(context, resourcesProvider);
             }
 
             @Override

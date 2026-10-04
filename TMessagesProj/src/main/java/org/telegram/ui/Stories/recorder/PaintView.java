@@ -1566,7 +1566,7 @@ public class PaintView extends SizeNotifierFrameLayoutPhoto implements IPhotoPai
             reactionShowProgress = 0f;
         }
         if (reactionLayout == null) {
-            reactionLayout = new ReactionsContainerLayout(ReactionsContainerLayout.TYPE_STORY_LIKES, LaunchActivity.getLastFragment(), getContext(), currentAccount, new WrappedResourceProvider(new DarkThemeResourceProvider()) {
+            reactionLayout = new ReactionsContainerLayout(ReactionsContainerLayout.TYPE_STORY_LIKES, LaunchActivity.getLastFragment(), getContext(), currentAccount, new WrappedResourceProvider(new DarkThemeResourceProvider(true)) {
                 @Override
                 public void appendColors() {
                     sparseIntArray.put(Theme.key_chat_emojiPanelBackground, ColorUtils.setAlphaComponent(Color.WHITE, 30));
@@ -2199,7 +2199,7 @@ public class PaintView extends SizeNotifierFrameLayoutPhoto implements IPhotoPai
     }
 
     private void showAudioAlert(Utilities.Callback<MessageObject> onAudioSelected) {
-        final SelectAudioAlert sheet = new SelectAudioAlert(getContext(), onAudioSelected, new DarkThemeResourceProvider());
+        final SelectAudioAlert sheet = new SelectAudioAlert(getContext(), onAudioSelected, new DarkThemeResourceProvider(true));
         sheet.setOnDismissListener(() -> {
             onOpenCloseStickersAlert(false);
         });

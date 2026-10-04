@@ -100,6 +100,7 @@ import java.util.function.Consumer;
 public class NotificationsController extends BaseController implements NotificationCenter.NotificationCenterDelegate {
 
     public static final String EXTRA_VOICE_REPLY = "extra_voice_reply";
+    private static final int VECTOR_NOTIFICATION_ACCENT = 0xffEB5E19;
     public static String OTHER_NOTIFICATIONS_CHANNEL = null;
 
     private static final DispatchQueue notificationsQueue = new DispatchQueue("notificationsQueue");
@@ -285,8 +286,10 @@ public class NotificationsController extends BaseController implements Notificat
             notificationChannel.enableVibration(false);
             notificationChannel.setSound(null, null);
             try {
+                PushDiagnostics.log("notification_channel_create", "kind=internal id=" + OTHER_NOTIFICATIONS_CHANNEL + " importance=" + notificationChannel.getImportance());
                 systemNotificationManager.createNotificationChannel(notificationChannel);
             } catch (Exception e) {
+                PushDiagnostics.error("notification_channel_create_failed", "kind=internal id=" + OTHER_NOTIFICATIONS_CHANNEL, e);
                 FileLog.e(e);
             }
         }
@@ -3608,7 +3611,7 @@ public class NotificationsController extends BaseController implements Notificat
             String id = "ndid_" + did;
 
             Intent shortcutIntent = new Intent(ApplicationLoader.applicationContext, OpenChatReceiver.class);
-            shortcutIntent.setAction("com.tmessages.openchat" + Math.random() + Integer.MAX_VALUE);
+            shortcutIntent.setAction(ApplicationLoader.getApplicationId() + ".openchat" + Math.random() + Integer.MAX_VALUE);
             if (did > 0) {
                 shortcutIntent.putExtra("userId", did);
             } else {
@@ -3635,7 +3638,7 @@ public class NotificationsController extends BaseController implements Notificat
             ShortcutManagerCompat.pushDynamicShortcut(ApplicationLoader.applicationContext, shortcut);
             builder.setShortcutInfo(shortcut);
             Intent intent = new Intent(ApplicationLoader.applicationContext, BubbleActivity.class);
-            intent.setAction("com.tmessages.openchat" + Math.random() + Integer.MAX_VALUE);
+            intent.setAction(ApplicationLoader.getApplicationId() + ".openchat" + Math.random() + Integer.MAX_VALUE);
             if (DialogObject.isUserDialog(did)) {
                 intent.putExtra("userId", did);
             } else {
@@ -4098,6 +4101,8 @@ public class NotificationsController extends BaseController implements Notificat
                 FileLog.d("create new channel " + channelId);
             }
             lastNotificationChannelCreateTime = SystemClock.elapsedRealtime();
+            PushDiagnostics.log("notification_channel_create",
+                    "account=" + currentAccount + " id=" + channelId + " importance=" + notificationChannel.getImportance());
             systemNotificationManager.createNotificationChannel(notificationChannel);
             preferences.edit().putString(key, channelId).putString(key + "_s", newSettingsHash).commit();
         }
@@ -4536,7 +4541,7 @@ public class NotificationsController extends BaseController implements Notificat
             }
 
             Intent intent = new Intent(ApplicationLoader.applicationContext, LaunchActivity.class);
-            intent.setAction("com.tmessages.openchat" + Math.random() + Integer.MAX_VALUE);
+            intent.setAction(ApplicationLoader.getApplicationId() + ".openchat" + Math.random() + Integer.MAX_VALUE);
             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
             if (lastMessageObject != null && lastMessageObject.isOauthPush) {
                 intent.putExtra("oauth_url", lastMessageObject.localName);
@@ -4589,7 +4594,7 @@ public class NotificationsController extends BaseController implements Notificat
             PendingIntent contentIntent = PendingIntent.getActivity(ApplicationLoader.applicationContext, 0, intent, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_ONE_SHOT);
 
             mBuilder.setContentTitle(name)
-                    .setSmallIcon(R.drawable.notification)
+                    .setSmallIcon(R.drawable.vector_notification_icon)
                     .setAutoCancel(true)
                     .setNumber(total_unread_count)
                     .setContentIntent(contentIntent)
@@ -4597,7 +4602,7 @@ public class NotificationsController extends BaseController implements Notificat
                     .setGroupSummary(true)
                     .setShowWhen(true)
                     .setWhen(((long) lastMessageObject.messageOwner.date) * 1000)
-                    .setColor(0xff11acfa);
+                    .setColor(VECTOR_NOTIFICATION_ACCENT);
 
             long[] vibrationPattern = null;
             Uri sound = null;
@@ -4822,6 +4827,8 @@ public class NotificationsController extends BaseController implements Notificat
             editor.commit();
             sound = Settings.System.DEFAULT_RINGTONE_URI;
             notificationBuilder.setChannelId(validateChannelId(dialogId, topicId, chatName, vibrationPattern, ledColor, sound, importance, isDefault, isInApp, isSilent, chatType));
+            PushDiagnostics.log("android_notification_post",
+                    "account=" + currentAccount + " id=" + notificationId + " kind=sound_retry " + PushDiagnostics.notificationState(ApplicationLoader.applicationContext));
             notificationManager.notify(notificationId, notificationBuilder.build());
         }
     }
@@ -4834,6 +4841,8 @@ public class NotificationsController extends BaseController implements Notificat
         }
         Notification mainNotification = notificationBuilder.build();
         if (Build.VERSION.SDK_INT <= 19) {
+            PushDiagnostics.log("android_notification_post",
+                    "account=" + currentAccount + " id=" + notificationId + " kind=legacy_summary " + PushDiagnostics.notificationState(ApplicationLoader.applicationContext));
             notificationManager.notify(notificationId, mainNotification);
             if (BuildVars.LOGS_ENABLED) {
                 FileLog.d("show summary notification by SDK check");
@@ -4900,8 +4909,11 @@ public class NotificationsController extends BaseController implements Notificat
                     FileLog.w("show dialog notification with id " + id + " " + dialogId +  " user=" + user + " chat=" + chat);
                 }
                 try {
+                    PushDiagnostics.log("android_notification_post",
+                            "account=" + currentAccount + " id=" + id + " kind=dialog dialog=" + dialogId + " " + PushDiagnostics.notificationState(ApplicationLoader.applicationContext));
                     notificationManager.notify(id, notification.build());
                 } catch (SecurityException e) {
+                    PushDiagnostics.error("android_notification_post_failed", "account=" + currentAccount + " id=" + id + " kind=dialog", e);
                     FileLog.e(e);
                     resetNotificationSound(notification, dialogId, lastTopicId, chatName, vibrationPattern, ledColor, sound, importance, isDefault, isInApp, isSilent, chatType);
                 }
@@ -5506,7 +5518,7 @@ public class NotificationsController extends BaseController implements Notificat
             }
 
             Intent intent = new Intent(ApplicationLoader.applicationContext, LaunchActivity.class);
-            intent.setAction("com.tmessages.openchat" + Math.random() + Integer.MAX_VALUE);
+            intent.setAction(ApplicationLoader.getApplicationId() + ".openchat" + Math.random() + Integer.MAX_VALUE);
             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
             intent.addCategory(Intent.CATEGORY_LAUNCHER);
             if (lastMessageObject != null && lastMessageObject.isOauthPush) {
@@ -5546,7 +5558,7 @@ public class NotificationsController extends BaseController implements Notificat
             }
             Intent msgHeardIntent = new Intent(ApplicationLoader.applicationContext, AutoMessageHeardReceiver.class);
             msgHeardIntent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
-            msgHeardIntent.setAction("org.telegram.messenger.ACTION_MESSAGE_HEARD");
+            msgHeardIntent.setAction(ApplicationLoader.getApplicationId() + ".ACTION_MESSAGE_HEARD");
             msgHeardIntent.putExtra("dialog_id", dialogId);
             msgHeardIntent.putExtra("max_id", maxId);
             msgHeardIntent.putExtra("currentAccount", currentAccount);
@@ -5589,11 +5601,11 @@ public class NotificationsController extends BaseController implements Notificat
 
             NotificationCompat.Builder builder = new NotificationCompat.Builder(ApplicationLoader.applicationContext)
                     .setContentTitle(name)
-                    .setSmallIcon(R.drawable.notification)
+                    .setSmallIcon(R.drawable.vector_notification_icon)
                     .setContentText(text.toString())
                     .setAutoCancel(true)
                     .setNumber(dialogKey.story ? storyPushMessages.size() : messageObjects.size())
-                    .setColor(0xff11acfa)
+                    .setColor(VECTOR_NOTIFICATION_ACCENT)
                     .setGroupSummary(false)
                     .setWhen(date)
                     .setShowWhen(true)
@@ -5640,7 +5652,7 @@ public class NotificationsController extends BaseController implements Notificat
             if (copybutton != null) {
                 Intent copyIntent = new Intent(ApplicationLoader.applicationContext, CopyCodeReceiver.class);
                 copyIntent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
-                copyIntent.setAction("org.telegram.messenger.ACTION_COPY_CODE");
+                copyIntent.setAction(ApplicationLoader.getApplicationId() + ".ACTION_COPY_CODE");
                 copyIntent.putExtra("text", copybutton.copy_text);
                 PendingIntent copyPendingIntent = PendingIntent.getBroadcast(ApplicationLoader.applicationContext, internalId, copyIntent, PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
                 NotificationCompat.Action copyAction = new NotificationCompat.Action.Builder(R.drawable.msg_copy, copybutton.text, copyPendingIntent)
@@ -5704,8 +5716,11 @@ public class NotificationsController extends BaseController implements Notificat
                 FileLog.d("show summary with id " + notificationId);
             }
             try {
+                PushDiagnostics.log("android_notification_post",
+                        "account=" + currentAccount + " id=" + notificationId + " kind=summary " + PushDiagnostics.notificationState(ApplicationLoader.applicationContext));
                 notificationManager.notify(notificationId, mainNotification);
             } catch (SecurityException e) {
+                PushDiagnostics.error("android_notification_post_failed", "account=" + currentAccount + " id=" + notificationId + " kind=summary", e);
                 FileLog.e(e);
                 resetNotificationSound(notificationBuilder, lastDialogId, lastTopicId, chatName, vibrationPattern, ledColor, sound, importance, isDefault, isInApp, isSilent, chatType);
             }

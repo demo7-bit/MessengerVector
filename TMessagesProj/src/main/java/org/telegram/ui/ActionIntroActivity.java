@@ -518,7 +518,7 @@ public class ActionIntroActivity extends BaseFragment implements LocationControl
         buttonTextView.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText));
         buttonTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
         buttonTextView.setTypeface(AndroidUtilities.bold());
-        buttonTextView.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(24), Color.TRANSPARENT, Theme.getColor(Theme.key_featuredStickers_addButtonPressed)));
+        buttonTextView.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(Theme.MODERN_BUTTON_RADIUS_DP), Color.TRANSPARENT, Theme.getColor(Theme.key_featuredStickers_addButtonPressed)));
         viewGroup.addView(buttonTextView);
         buttonTextView.setOnClickListener(v -> {
             if (getParentActivity() == null) {
@@ -657,7 +657,7 @@ public class ActionIntroActivity extends BaseFragment implements LocationControl
     private void updateColors() {
         startMessagingButtonBackground.setColors(new int[]{getThemedColor(Theme.key_featuredStickers_addButton), getThemedColor(Theme.key_featuredStickers_addButton2)});
         buttonTextView.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText));
-        buttonTextView.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(24), Color.TRANSPARENT, Theme.getColor(Theme.key_featuredStickers_addButtonPressed)));
+        buttonTextView.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(Theme.MODERN_BUTTON_RADIUS_DP), Color.TRANSPARENT, Theme.getColor(Theme.key_featuredStickers_addButtonPressed)));
 
 
         if (colors == null || imageView == null) {

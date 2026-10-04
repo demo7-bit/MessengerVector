@@ -208,6 +208,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
     private int themeListRow;
     private int themeListRow2;
     private int themeAccentListRow;
+    private int themeColorsRow;
     private int themeInfoRow;
     private int chatBlurRow;
     @Keep
@@ -555,6 +556,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
         themeListRow = -1;
         themeListRow2 = -1;
         themeAccentListRow = -1;
+        themeColorsRow = -1;
         themeInfoRow = -1;
         preferedHeaderRow = -1;
         automaticHeaderRow = -1;
@@ -641,6 +643,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
             themeHeaderRow = rowCount++;
             themeListRow = rowCount++;
             hasThemeAccents = false;
+            themeColorsRow = rowCount++;
             themeInfoRow = rowCount++;
             createNewThemeRow = rowCount++;
             lastShadowRow = rowCount++;
@@ -840,14 +843,16 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
             boolean resetCurrentAccent = false;
             Theme.ThemeInfo classicTheme = Theme.getTheme("Blue");
             Theme.ThemeInfo darkTheme = Theme.getTheme("Dark Blue");
-            if (classicTheme != null && classicTheme.currentAccentId != Theme.DEFALT_THEME_ACCENT_ID) {
+            int classicAccentId = Theme.getDefaultAccentId(classicTheme);
+            int darkAccentId = Theme.getDefaultAccentId(darkTheme);
+            if (classicTheme != null && classicTheme.currentAccentId != classicAccentId) {
                 resetCurrentAccent |= classicTheme == Theme.getActiveTheme();
-                classicTheme.setCurrentAccentId(Theme.DEFALT_THEME_ACCENT_ID);
+                classicTheme.setCurrentAccentId(classicAccentId);
                 Theme.saveThemeAccents(classicTheme, true, false, true, false);
             }
-            if (darkTheme != null && darkTheme.currentAccentId != Theme.DEFALT_THEME_ACCENT_ID) {
+            if (darkTheme != null && darkTheme.currentAccentId != darkAccentId) {
                 resetCurrentAccent |= darkTheme == Theme.getActiveTheme();
-                darkTheme.setCurrentAccentId(Theme.DEFALT_THEME_ACCENT_ID);
+                darkTheme.setCurrentAccentId(darkAccentId);
                 Theme.saveThemeAccents(darkTheme, true, false, true, false);
             }
             if (resetCurrentAccent) {
@@ -1131,6 +1136,14 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                 presentFragment(new PeerColorActivity(0).setOnApplied(this));
             } else if (position == colorThemeRow) {
                 presentFragment(new ThemeActivity(THEME_TYPE_SETTINGS));
+            } else if (position == themeColorsRow) {
+                boolean telegramColorsEnabled = !Theme.isVectorColorsEnabled();
+                telegramColorsEnabled = !telegramColorsEnabled;
+                Theme.setVectorColorsEnabled(!telegramColorsEnabled);
+                if (view instanceof TextCheckCell) {
+                    ((TextCheckCell) view).setChecked(telegramColorsEnabled);
+                }
+                LaunchActivity.restartAfterThemeColorModeChange();
             } else if (position == sendByEnterRow) {
                 SharedPreferences preferences = MessagesController.getGlobalMainSettings();
                 boolean send = preferences.getBoolean("send_by_enter", false);
@@ -2639,6 +2652,14 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                         textCheckCell.setTextAndValueAndCheck(getString(R.string.ShowSensitiveContent), getString(R.string.ShowSensitiveContentInfo), getMessagesController().showSensitiveContent(), true, true);
                     } else if (position == chatBlurRow) {
                         textCheckCell.setTextAndCheck(getString("BlurInChat", R.string.BlurInChat), SharedConfig.chatBlurEnabled(), true);
+                    } else if (position == themeColorsRow) {
+                        textCheckCell.setTextAndValueAndCheck(
+                                getString(R.string.VectorColors),
+                                getString(R.string.VectorColorsInfo),
+                                !Theme.isVectorColorsEnabled(),
+                                true,
+                                false
+                        );
                     }
                     break;
                 }
@@ -2776,7 +2797,8 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                 return TYPE_BRIGHTNESS;
             } else if (position == scheduleLocationRow || position == sendByEnterRow ||
                     position == raiseToSpeakRow || position == raiseToListenRow || position == pauseOnRecordRow ||
-                    position == directShareRow || position == chatBlurRow || position == pauseOnMediaRow || position == nextMediaTapRow || position == sensitiveContentRow) {
+                    position == directShareRow || position == chatBlurRow || position == pauseOnMediaRow || position == nextMediaTapRow ||
+                    position == sensitiveContentRow || position == themeColorsRow) {
                 return TYPE_TEXT_CHECK;
             } else if (position == textSizeRow) {
                 return TYPE_TEXT_SIZE;

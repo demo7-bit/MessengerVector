@@ -194,7 +194,7 @@ public class JoinGroupAlert extends BottomSheet {
             requestFrameLayout.addView(requestProgressView, LayoutHelper.createFrame(48, 48, Gravity.CENTER));
 
             requestTextView = new TextView(getContext());
-            requestTextView.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(24), getThemedColor(Theme.key_featuredStickers_addButton), getThemedColor(Theme.key_featuredStickers_addButtonPressed)));
+            requestTextView.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(Theme.MODERN_BUTTON_RADIUS_DP), getThemedColor(Theme.key_featuredStickers_addButton), getThemedColor(Theme.key_featuredStickers_addButtonPressed)));
             requestTextView.setEllipsize(TextUtils.TruncateAt.END);
             requestTextView.setGravity(Gravity.CENTER);
             requestTextView.setSingleLine(true);
@@ -325,7 +325,7 @@ public class JoinGroupAlert extends BottomSheet {
 
             boolean isJoinToChannel = chatInvite.channel && !chatInvite.megagroup || ChatObject.isChannel(chatInvite.chat) && !chatInvite.chat.megagroup;
             final TextView joinTextView = new TextView(getContext());
-            joinTextView.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(24), getThemedColor(Theme.key_featuredStickers_addButton), getThemedColor(Theme.key_featuredStickers_addButtonPressed)));
+            joinTextView.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(Theme.MODERN_BUTTON_RADIUS_DP), getThemedColor(Theme.key_featuredStickers_addButton), getThemedColor(Theme.key_featuredStickers_addButtonPressed)));
             ScaleStateListAnimator.apply(joinTextView, .02f, 1.2f);
             joinTextView.setEllipsize(TextUtils.TruncateAt.END);
             joinTextView.setGravity(Gravity.CENTER);

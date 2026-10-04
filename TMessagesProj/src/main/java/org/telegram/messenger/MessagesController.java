@@ -362,6 +362,9 @@ public class MessagesController extends BaseController implements NotificationCe
     public boolean firstGettingTask;
     public boolean registeringForPush;
     private long lastPushRegisterSendTime;
+    private static final long[] PUSH_REGISTER_RETRY_DELAYS_MS = {5_000L, 30_000L, 120_000L, 600_000L};
+    private int pushRegisterRetryAttempt;
+    private Runnable pushRegisterRetryRunnable;
     private boolean resetingDialogs;
     private TLRPC.TL_messages_peerDialogs resetDialogsPinned;
     private TLRPC.messages_Dialogs resetDialogsAll;
@@ -1773,7 +1776,7 @@ public class MessagesController extends BaseController implements NotificationCe
         channelRevenueWithdrawalEnabled = mainPreferences.getBoolean("channelRevenueWithdrawalEnabled", false);
         newNoncontactPeersRequirePremiumWithoutOwnpremium = mainPreferences.getBoolean("newNoncontactPeersRequirePremiumWithoutOwnpremium", false);
         reactionsUniqMax = mainPreferences.getInt("reactionsUniqMax", 11);
-        premiumManageSubscriptionUrl = mainPreferences.getString("premiumManageSubscriptionUrl", ApplicationLoader.isStandaloneBuild() ? "https://t.me/premiumbot?start=status" : "https://play.google.com/store/account/subscriptions?sku=telegram_premium&package=org.telegram.messenger");
+        premiumManageSubscriptionUrl = mainPreferences.getString("premiumManageSubscriptionUrl", ApplicationLoader.isStandaloneBuild() ? "https://t.me/premiumbot?start=status" : "https://play.google.com/store/account/subscriptions?sku=telegram_premium&package=" + ApplicationLoader.getApplicationId());
         androidDisableRoundCamera2 = mainPreferences.getBoolean("androidDisableRoundCamera2", true);
         storiesPinnedToTopCountMax = mainPreferences.getInt("storiesPinnedToTopCountMax", 3);
         showAnnualPerMonth = mainPreferences.getBoolean("showAnnualPerMonth", false);
@@ -6672,6 +6675,7 @@ public class MessagesController extends BaseController implements NotificationCe
         lastStatusUpdateTime = 0;
         offlineSent = false;
         registeringForPush = false;
+        cancelPushRegistrationRetry();
         getDifferenceFirstSync = true;
         uploadingAvatar = null;
         uploadingWallpaper = null;
@@ -16134,14 +16138,28 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public void registerForPush(@PushListenerController.PushType int pushType, String regid) {
-        if (TextUtils.isEmpty(regid) || registeringForPush || getUserConfig().getClientUserId() == 0) {
+        if (TextUtils.isEmpty(regid)) {
+            PushDiagnostics.log("telegram_register_device_skipped", "account=" + currentAccount + " reason=empty_token");
+            return;
+        }
+        if (registeringForPush) {
+            PushDiagnostics.log("telegram_register_device_skipped", "account=" + currentAccount + " reason=request_in_progress");
+            return;
+        }
+        if (getUserConfig().getClientUserId() == 0) {
+            PushDiagnostics.log("telegram_register_device_skipped", "account=" + currentAccount + " reason=inactive_account");
             return;
         }
         if (getUserConfig().registeredForPush && regid.equals(SharedConfig.pushString)) {
+            PushDiagnostics.log("telegram_register_device_confirmed_cached",
+                    "account=" + currentAccount + " pushType=" + pushType + " " + PushDiagnostics.tokenSummary(regid));
             return;
         }
         registeringForPush = true;
         lastPushRegisterSendTime = SystemClock.elapsedRealtime();
+        KeepAliveJob.startJob();
+        PushDiagnostics.log("telegram_register_device_start",
+                "account=" + currentAccount + " pushType=" + pushType + " " + PushDiagnostics.tokenSummary(regid));
         if (SharedConfig.pushAuthKey == null) {
             SharedConfig.pushAuthKey = new byte[256];
             Utilities.random.nextBytes(SharedConfig.pushAuthKey);
@@ -16163,17 +16181,72 @@ public class MessagesController extends BaseController implements NotificationCe
             }
         }
         getConnectionsManager().sendRequest(req, (response, error) -> {
-            if (response instanceof TLRPC.TL_boolTrue) {
+            boolean registered = response instanceof TLRPC.TL_boolTrue && TextUtils.equals(regid, SharedConfig.pushString);
+            if (registered) {
+                PushDiagnostics.log("telegram_register_device_success",
+                        "account=" + currentAccount + " pushType=" + pushType + " " + PushDiagnostics.tokenSummary(regid));
+            } else {
+                PushDiagnostics.error("telegram_register_device_failed",
+                        "account=" + currentAccount + " pushType=" + pushType + " error=" + (error != null ? error.text : "unexpected_response"), null);
+            }
+            if (registered) {
                 if (BuildVars.LOGS_ENABLED) {
                     FileLog.d("account " + currentAccount + " registered for push, push type: " + pushType);
                 }
                 getUserConfig().registeredForPush = true;
                 SharedConfig.pushString = regid;
                 SharedConfig.pushType = pushType;
+                SharedConfig.saveConfig();
                 getUserConfig().saveConfig(false);
+            } else {
+                getUserConfig().registeredForPush = false;
+                getUserConfig().saveConfig(false);
+                if (BuildVars.LOGS_ENABLED) {
+                    FileLog.e("account " + currentAccount + " failed to register for push" + (error != null ? ": " + error.text : ""));
+                }
             }
-            AndroidUtilities.runOnUIThread(() -> registeringForPush = false);
+            KeepAliveJob.finishJob();
+            AndroidUtilities.runOnUIThread(() -> {
+                registeringForPush = false;
+                ApplicationLoader.updatePushConnectionEnabledForAllAccounts();
+                if (registered) {
+                    cancelPushRegistrationRetry();
+                } else {
+                    schedulePushRegistrationRetry(pushType, SharedConfig.pushString);
+                }
+            });
         });
+    }
+
+    private void schedulePushRegistrationRetry(@PushListenerController.PushType int pushType, String regid) {
+        if (TextUtils.isEmpty(regid) || getUserConfig().getClientUserId() == 0) {
+            return;
+        }
+        if (pushRegisterRetryRunnable != null) {
+            AndroidUtilities.cancelRunOnUIThread(pushRegisterRetryRunnable);
+        }
+        int retryIndex = Math.min(pushRegisterRetryAttempt, PUSH_REGISTER_RETRY_DELAYS_MS.length - 1);
+        long retryDelay = PUSH_REGISTER_RETRY_DELAYS_MS[retryIndex];
+        pushRegisterRetryAttempt++;
+        PushDiagnostics.log("telegram_register_device_retry_scheduled",
+                "account=" + currentAccount + " attempt=" + (pushRegisterRetryAttempt + 1) + " delayMs=" + retryDelay);
+        pushRegisterRetryRunnable = () -> {
+            pushRegisterRetryRunnable = null;
+            if (TextUtils.equals(regid, SharedConfig.pushString)) {
+                registerForPush(pushType, regid);
+            } else {
+                registerForPush(SharedConfig.pushType, SharedConfig.pushString);
+            }
+        };
+        AndroidUtilities.runOnUIThread(pushRegisterRetryRunnable, retryDelay);
+    }
+
+    private void cancelPushRegistrationRetry() {
+        if (pushRegisterRetryRunnable != null) {
+            AndroidUtilities.cancelRunOnUIThread(pushRegisterRetryRunnable);
+            pushRegisterRetryRunnable = null;
+        }
+        pushRegisterRetryAttempt = 0;
     }
 
     public void loadCurrentState() {

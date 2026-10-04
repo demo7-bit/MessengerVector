@@ -96,6 +96,7 @@ public class ScrollSlidingTextTabStrip extends HorizontalScrollView implements T
     private int scrollingToChild = -1;
 
     private GradientDrawable selectorDrawable;
+    private float selectorRadiusDp = 14f;
 
     private int tabLineColorKey = Theme.key_actionBarTabLine;
     private int activeTextColorKey = Theme.key_actionBarTabActiveText;
@@ -164,9 +165,7 @@ public class ScrollSlidingTextTabStrip extends HorizontalScrollView implements T
         this.resourcesProvider = resourcesProvider;
 
         selectorDrawable = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, null);
-        float rad = AndroidUtilities.dpf2(14);
-        selectorDrawable.setCornerRadii(new float[]{rad, rad, rad, rad, rad, rad, rad, rad});
-//        selectorDrawable.setCornerRadii(new float[]{rad, rad, rad, rad, 0, 0, 0, 0});
+        updateSelectorRadius();
 
         setFillViewport(true);
         setWillNotDraw(false);
@@ -648,6 +647,20 @@ public class ScrollSlidingTextTabStrip extends HorizontalScrollView implements T
         updateColors();
     }
 
+    public void setSelectorRadiusDp(float radiusDp) {
+        if (selectorRadiusDp == radiusDp) {
+            return;
+        }
+        selectorRadiusDp = radiusDp;
+        updateSelectorRadius();
+        updateColors();
+    }
+
+    private void updateSelectorRadius() {
+        selectorDrawable.setCornerRadius(AndroidUtilities.dpf2(selectorRadiusDp));
+        invalidate();
+    }
+
     @Override
     public void updateColors() {
         int count = tabsContainer.getChildCount();
@@ -657,7 +670,7 @@ public class ScrollSlidingTextTabStrip extends HorizontalScrollView implements T
 //            tab.setBackground(Theme.createSelectorDrawable(Theme.multAlpha(processColor(Theme.getColor(activeTextColorKey, resourcesProvider)), .15f), 3));
             tab.setBackground(
                 new InsetDrawable(
-                    Theme.createSelectorDrawable(Theme.multAlpha(processColor(Theme.getColor(activeTextColorKey, resourcesProvider)), .15f), Theme.RIPPLE_MASK_ROUNDRECT_6DP, dp(14)),
+                    Theme.createSelectorDrawable(Theme.multAlpha(processColor(Theme.getColor(activeTextColorKey, resourcesProvider)), .15f), Theme.RIPPLE_MASK_ROUNDRECT_6DP, dp(selectorRadiusDp)),
                     dp(4), dp(4), dp(4), dp(4)
                 )
             );

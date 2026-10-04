@@ -5408,7 +5408,7 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
         callMessageEnterView.setFilters(new InputFilter[]{
             new InputFilter.LengthFilter(maxGroupCallMessageLength)
         });
-        callMessageEnterView.getEditText().setLinkTextColor(0xFF4db8ff);
+        callMessageEnterView.getEditText().setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText, resourcesProvider));
         callMessageEnterView.setHint(getString(R.string.TypeMessage));
         callMessageEnterView.getEditText().addTextChangedListener(new TextWatcher() {
             @Override
@@ -5564,7 +5564,7 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
 
             final NumberPicker dayPicker = new NumberPicker(context);
             dayPicker.setTextColor(0xffffffff);
-            dayPicker.setSelectorColor(0xff6D89ED);
+            dayPicker.setSelectorColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText, resourcesProvider));
             dayPicker.setTextOffset(dp(10));
             dayPicker.setItemCount(5);
             final NumberPicker hourPicker = new NumberPicker(context) {
@@ -5575,7 +5575,7 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
             };
             hourPicker.setItemCount(5);
             hourPicker.setTextColor(0xffffffff);
-            hourPicker.setSelectorColor(0xff6D89ED);
+            hourPicker.setSelectorColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText, resourcesProvider));
             hourPicker.setTextOffset(-dp(10));
             final NumberPicker minutePicker = new NumberPicker(context) {
                 @Override
@@ -5585,7 +5585,7 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
             };
             minutePicker.setItemCount(5);
             minutePicker.setTextColor(0xffffffff);
-            minutePicker.setSelectorColor(0xff6D89ED);
+            minutePicker.setSelectorColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText, resourcesProvider));
             minutePicker.setTextOffset(-dp(34));
 
             scheduleButtonTextView = new TextView(context) {

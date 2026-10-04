@@ -111,7 +111,7 @@ public class CropInlineEditor extends FrameLayout {
         controlsLayout = new FrameLayout(context);
         addView(controlsLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.FILL));
 
-        wheel = new CropRotationWheel(context);
+        wheel = new CropRotationWheel(context, resourcesProvider);
         wheel.setListener(new CropRotationWheel.RotationWheelListener() {
             @Override
             public void onStart() {
@@ -183,7 +183,7 @@ public class CropInlineEditor extends FrameLayout {
         cropButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
         cropButton.setTypeface(AndroidUtilities.bold());
         cropButton.setBackground(Theme.createSelectorDrawable(Theme.ACTION_BAR_PICKER_SELECTOR_COLOR, 0));
-        cropButton.setTextColor(0xff199cff);
+        cropButton.setTextColor(Theme.getColor(Theme.key_chat_editMediaButton, resourcesProvider));
         cropButton.setText(LocaleController.getString(R.string.StoryCrop));
         cropButton.setPadding(dp(12), 0, dp(12), 0);
         buttonsLayout.addView(cropButton, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, Gravity.FILL_VERTICAL | Gravity.RIGHT));

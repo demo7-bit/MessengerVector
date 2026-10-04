@@ -307,10 +307,6 @@ public class WebBrowserSettings extends UniversalFragment implements Notificatio
             items.add(UItem.asButton(BUTTON_SEARCH_ENGINE, R.drawable.msg_search, LocaleController.getString(R.string.SearchEngine), SearchEngine.getCurrent().name));
             items.add(UItem.asShadow(LocaleController.getString(R.string.BrowserSettingsSearchEngineInfo)));
 
-            if (BuildVars.DEBUG_PRIVATE_VERSION) {
-                items.add(UItem.asCheck(12, "adaptable colors").setChecked(SharedConfig.adaptableColorInBrowser));
-                items.add(UItem.asCheck(13, "only local IV").setChecked(SharedConfig.onlyLocalInstantView));
-            }
         }
     }
 

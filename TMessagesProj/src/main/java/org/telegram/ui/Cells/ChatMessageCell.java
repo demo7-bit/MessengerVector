@@ -27882,7 +27882,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     public int getParentWidth() {
         MessageObject object = currentMessageObject == null ? messageObjectToSet : currentMessageObject;
-        if (object != null && object.preview && parentWidth > 0) {
+        if (object != null && (object.preview || object.useCustomParentWidth) && parentWidth > 0) {
             return parentWidth;
         }
         return AndroidUtilities.displaySize.x;

@@ -3736,9 +3736,10 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
                 setVisibleHeight(lastVisibleHeight);
             });
 
+            scrollSlidingTextTabStrip.setSelectorRadiusDp(Theme.MODERN_FIELD_RADIUS_DP);
             if (iBlur3FactoryLiquidGlass != null) {
                 BlurredBackgroundDrawable filterTabsViewBackground = iBlur3FactoryLiquidGlass.create(scrollSlidingTextTabStrip, BlurredBackgroundProviderImpl.topPanel(resourcesProvider));
-                filterTabsViewBackground.setRadius(dp(18));
+                filterTabsViewBackground.setRadius(dp(Theme.MODERN_BUTTON_RADIUS_DP));
                 filterTabsViewBackground.setPadding(dp(6.666f));
                 scrollSlidingTextTabStrip.setPadding(0, dp(7), 0, dp(7));
                 scrollSlidingTextTabStrip.setClipToPadding(false);

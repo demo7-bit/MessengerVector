@@ -232,7 +232,7 @@ public class PhotoViewerCaptionEnterView extends FrameLayout implements Notifica
         messageEditText.setWindowView(windowView);
         messageEditText.setHint(LocaleController.getString(R.string.AddCaption));
         messageEditText.setImeOptions(EditorInfo.IME_FLAG_NO_EXTRACT_UI);
-        messageEditText.setLinkTextColor(0xff76c2f1);
+        messageEditText.setLinkTextColor(getThemedColor(Theme.key_chat_messageLinkIn));
         messageEditText.setInputType(messageEditText.getInputType() | EditorInfo.TYPE_TEXT_FLAG_CAP_SENTENCES);
         messageEditText.setMaxLines(4);
         messageEditText.setHorizontallyScrolling(false);
@@ -373,7 +373,7 @@ public class PhotoViewerCaptionEnterView extends FrameLayout implements Notifica
             }
         });
 
-        doneDrawable = Theme.createCircleDrawable(AndroidUtilities.dp(16), 0xff66bffa);
+        doneDrawable = Theme.createCircleDrawable(AndroidUtilities.dp(16), getThemedColor(Theme.key_chat_editMediaButton));
         checkDrawable = context.getResources().getDrawable(R.drawable.input_done).mutate();
         CombinedDrawable combinedDrawable = new CombinedDrawable(doneDrawable, checkDrawable, 0, AndroidUtilities.dp(1));
         combinedDrawable.setCustomSize(AndroidUtilities.dp(32), AndroidUtilities.dp(32));
@@ -495,6 +495,7 @@ public class PhotoViewerCaptionEnterView extends FrameLayout implements Notifica
 
     public void updateColors() {
         Theme.setDrawableColor(doneDrawable, getThemedColor(Theme.key_chat_editMediaButton));
+        messageEditText.setLinkTextColor(getThemedColor(Theme.key_chat_messageLinkIn));
         int color = getThemedColor(Theme.key_dialogFloatingIcon);
         int alpha = Color.alpha(color);
         Theme.setDrawableColor(checkDrawable, ColorUtils.setAlphaComponent(color, (int) (alpha * (0.58f + 0.42f * sendButtonEnabledProgress))));

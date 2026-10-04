@@ -49,6 +49,7 @@ public class PreviewButtons extends FrameLayout {
     public static final int BUTTON_SHARE = 5;
 
     private View shadowView;
+    private final Theme.ResourcesProvider resourcesProvider;
 
     private ArrayList<ButtonView> buttons = new ArrayList<>();
     public ShareButtonView shareButton;
@@ -57,7 +58,12 @@ public class PreviewButtons extends FrameLayout {
     private boolean shareArrow = true;
 
     public PreviewButtons(Context context) {
+        this(context, null);
+    }
+
+    public PreviewButtons(Context context, Theme.ResourcesProvider resourcesProvider) {
         super(context);
+        this.resourcesProvider = resourcesProvider;
 
         shadowView = new View(context);
         shadowView.setBackground(new GradientDrawable(GradientDrawable.Orientation.BOTTOM_TOP, new int[] { 0x66000000, 0x00000000 }));
@@ -231,7 +237,7 @@ public class PreviewButtons extends FrameLayout {
             this.arrow = withArrow;
 
 //            buttonPaint.setColor(0xffffffff);
-            buttonPaint.setColor(0xff199cff);
+            buttonPaint.setColor(Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider));
             darkenPaint.setColor(0x60000000);
 
             textPaint.setTextSize(dp(13));
@@ -280,6 +286,7 @@ public class PreviewButtons extends FrameLayout {
 
         @Override
         protected void onDraw(Canvas canvas) {
+            buttonPaint.setColor(Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider));
             if (isPressed() && pressedProgress != 1f) {
                 pressedProgress += (float) Math.min(40, 1000f / AndroidUtilities.screenRefreshRate) / 80f;
                 pressedProgress = Utilities.clamp(pressedProgress, 1f, 0);

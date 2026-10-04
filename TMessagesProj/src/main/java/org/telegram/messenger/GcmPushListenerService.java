@@ -18,26 +18,46 @@ import java.util.Map;
 public class GcmPushListenerService extends FirebaseMessagingService {
 
     @Override
+    public void onCreate() {
+        super.onCreate();
+        PushDiagnostics.logFirebaseConfiguration(this);
+        PushDiagnostics.log("firebase_service_create", "process=" + android.os.Process.myPid());
+    }
+
+    @Override
     public void onMessageReceived(RemoteMessage message) {
         String from = message.getFrom();
         Map<String, String> data = message.getData();
         long time = message.getSentTime();
 
-        if (BuildVars.LOGS_ENABLED) {
-            FileLog.d("FCM received data: " + data + " from: " + from);
-        }
+        PushDiagnostics.log("firebase_message_received",
+                "messageId=" + message.getMessageId()
+                        + " from=" + from
+                        + " sentTime=" + time
+                        + " dataKeys=" + data.keySet()
+                        + " hasEncryptedPayload=" + data.containsKey("p"));
 
         PushListenerController.processRemoteMessage(PushListenerController.PUSH_TYPE_FIREBASE, data.get("p"), time);
     }
 
     @Override
+    public void onDeletedMessages() {
+        PushDiagnostics.log("firebase_messages_deleted", "requesting MTProto resync");
+        PushListenerController.processDeletedMessages();
+    }
+
+    @Override
     public void onNewToken(@NonNull String token) {
         AndroidUtilities.runOnUIThread(() -> {
-            if (BuildVars.LOGS_ENABLED) {
-                FileLog.d("Refreshed FCM token: " + token);
-            }
+            PushDiagnostics.log("firebase_token_refreshed", PushDiagnostics.tokenSummary(token));
             ApplicationLoader.postInitApplication();
-            PushListenerController.sendRegistrationToServer(PushListenerController.PUSH_TYPE_FIREBASE, token);
+            PushListenerController.GooglePushListenerServiceProvider.INSTANCE.onNewToken(token);
         });
+    }
+
+    @Override
+    public void onDestroy() {
+        PushDiagnostics.log("firebase_service_destroy", "process=" + android.os.Process.myPid());
+        super.onDestroy();
     }
 }

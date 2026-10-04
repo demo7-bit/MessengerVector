@@ -190,7 +190,7 @@ public class StickerMasksAlert extends BottomSheet implements NotificationCenter
             addView(backgroundView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, searchFieldHeight));
 
             View searchBackground = new View(context);
-            searchBackground.setBackgroundDrawable(Theme.createRoundRectDrawable(AndroidUtilities.dp(18), 0xff363636));
+            searchBackground.setBackgroundDrawable(Theme.createRoundRectDrawable(AndroidUtilities.dp(Theme.MODERN_FIELD_RADIUS_DP), 0xff363636));
             addView(searchBackground, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 36, Gravity.LEFT | Gravity.TOP, 14, 14, 14, 0));
 
             ImageView searchIconImageView = new ImageView(context);
@@ -469,9 +469,10 @@ public class StickerMasksAlert extends BottomSheet implements NotificationCenter
 
         searchFieldHeight = AndroidUtilities.dp(64);
 
+        final int accentColor = getThemedColor(Theme.key_chat_editMediaButton);
         stickerIcons = new Drawable[]{
-                Theme.createEmojiIconSelectorDrawable(context, R.drawable.stickers_recent, 0xff4b4b4b, 0xff6ebaed),
-                Theme.createEmojiIconSelectorDrawable(context, R.drawable.stickers_favorites, 0xff4b4b4b, 0xff6ebaed),
+                Theme.createEmojiIconSelectorDrawable(context, R.drawable.stickers_recent, 0xff4b4b4b, accentColor),
+                Theme.createEmojiIconSelectorDrawable(context, R.drawable.stickers_favorites, 0xff4b4b4b, accentColor),
         };
 
         MediaDataController.getInstance(currentAccount).checkStickers(MediaDataController.TYPE_IMAGE);
@@ -678,7 +679,7 @@ public class StickerMasksAlert extends BottomSheet implements NotificationCenter
 
         stickersTab.setType(ScrollSlidingTabStrip.Type.TAB);
         stickersTab.setUnderlineHeight(AndroidUtilities.getShadowHeight());
-        stickersTab.setIndicatorColor(0xff6ebaed);
+        stickersTab.setIndicatorColor(accentColor);
         stickersTab.setUnderlineColor(0);
         stickersTab.setBackgroundColor(0xff252525);
         containerView.addView(stickersTab, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 36 + 6, Gravity.LEFT | Gravity.TOP));
@@ -755,13 +756,13 @@ public class StickerMasksAlert extends BottomSheet implements NotificationCenter
                 super.setSelected(selected);
                 Drawable background = getBackground();
                 if (Build.VERSION.SDK_INT >= 21 && background != null) {
-                    int color = selected ? 0xff6ebaed : 0x1effffff;
+                    int color = selected ? accentColor : 0x1effffff;
                     Theme.setSelectorDrawableColor(background, Color.argb(30, Color.red(color), Color.green(color), Color.blue(color)), true);
                 }
             }
         };
         emojiButton.setScaleType(ImageView.ScaleType.CENTER);
-        emojiButton.setImageDrawable(Theme.createEmojiIconSelectorDrawable(context, R.drawable.smiles_tab_smiles, 0xffffffff, 0xff6ebaed));
+        emojiButton.setImageDrawable(Theme.createEmojiIconSelectorDrawable(context, R.drawable.smiles_tab_smiles, 0xffffffff, accentColor));
         if (Build.VERSION.SDK_INT >= 21) {
             RippleDrawable rippleDrawable = (RippleDrawable) Theme.createSelectorDrawable(0x1effffff);
             Theme.setRippleDrawableForceSoftware(rippleDrawable);
@@ -782,13 +783,13 @@ public class StickerMasksAlert extends BottomSheet implements NotificationCenter
                 super.setSelected(selected);
                 Drawable background = getBackground();
                 if (Build.VERSION.SDK_INT >= 21 && background != null) {
-                    int color = selected ? 0xff6ebaed : 0x1effffff;
+                    int color = selected ? accentColor : 0x1effffff;
                     Theme.setSelectorDrawableColor(background, Color.argb(30, Color.red(color), Color.green(color), Color.blue(color)), true);
                 }
             }
         };
         stickersButton.setScaleType(ImageView.ScaleType.CENTER);
-        stickersButton.setImageDrawable(Theme.createEmojiIconSelectorDrawable(context, R.drawable.smiles_tab_stickers, 0xffffffff, 0xff6ebaed));
+        stickersButton.setImageDrawable(Theme.createEmojiIconSelectorDrawable(context, R.drawable.smiles_tab_stickers, 0xffffffff, accentColor));
         if (Build.VERSION.SDK_INT >= 21) {
             RippleDrawable rippleDrawable = (RippleDrawable) Theme.createSelectorDrawable(0x1effffff);
             Theme.setRippleDrawableForceSoftware(rippleDrawable);
@@ -810,13 +811,13 @@ public class StickerMasksAlert extends BottomSheet implements NotificationCenter
                     super.setSelected(selected);
                     Drawable background = getBackground();
                     if (Build.VERSION.SDK_INT >= 21 && background != null) {
-                        int color = selected ? 0xff6ebaed : 0x1effffff;
+                        int color = selected ? accentColor : 0x1effffff;
                         Theme.setSelectorDrawableColor(background, Color.argb(30, Color.red(color), Color.green(color), Color.blue(color)), true);
                     }
                 }
             };
             masksButton.setScaleType(ImageView.ScaleType.CENTER);
-            masksButton.setImageDrawable(Theme.createEmojiIconSelectorDrawable(context, R.drawable.ic_masks_msk1, 0xffffffff, 0xff6ebaed));
+            masksButton.setImageDrawable(Theme.createEmojiIconSelectorDrawable(context, R.drawable.ic_masks_msk1, 0xffffffff, accentColor));
             if (Build.VERSION.SDK_INT >= 21) {
                 RippleDrawable rippleDrawable = (RippleDrawable) Theme.createSelectorDrawable(0x1effffff);
                 Theme.setRippleDrawableForceSoftware(rippleDrawable);

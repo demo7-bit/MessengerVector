@@ -41,7 +41,7 @@ public class SearchField extends FrameLayout {
         FrameLayout.LayoutParams lp;
 
         searchBackground = new View(context);
-        searchBackground.setBackgroundDrawable(Theme.createRoundRectDrawable(AndroidUtilities.dp(18), getThemedColor(Theme.key_dialogSearchBackground)));
+        searchBackground.setBackgroundDrawable(Theme.createRoundRectDrawable(AndroidUtilities.dp(Theme.MODERN_FIELD_RADIUS_DP), getThemedColor(Theme.key_dialogSearchBackground)));
         if (supportRtl) {
             lp = LayoutHelper.createFrameRelatively(LayoutHelper.MATCH_PARENT, 36, Gravity.START | Gravity.TOP, horizontalMargin, 11, horizontalMargin, 0);
         } else {

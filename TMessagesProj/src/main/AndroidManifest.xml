@@ -252,7 +252,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
-                <data android:mimeType="vnd.android.cursor.item/vnd.org.telegram.messenger.android.profile"/>
+                <data android:mimeType="vnd.android.cursor.item/vnd.app.vector.messenger.android.profile"/>
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
@@ -296,8 +296,8 @@
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
-                <data android:mimeType="vnd.android.cursor.item/vnd.org.telegram.messenger.android.call"/>
-                <data android:mimeType="vnd.android.cursor.item/vnd.org.telegram.messenger.android.call.video"/>
+                <data android:mimeType="vnd.android.cursor.item/vnd.app.vector.messenger.android.call"/>
+                <data android:mimeType="vnd.android.cursor.item/vnd.app.vector.messenger.android.call.video"/>
             </intent-filter>
         </activity-alias>
         <activity
@@ -399,7 +399,7 @@
             android:name=".AutoMessageHeardReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="org.telegram.messenger.ACTION_MESSAGE_HEARD"/>
+                <action android:name="${applicationId}.ACTION_MESSAGE_HEARD"/>
             </intent-filter>
         </receiver>
 
@@ -407,7 +407,7 @@
             android:name=".CopyCodeReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="org.telegram.messenger.ACTION_COPY_CODE"/>
+                <action android:name="${applicationId}.ACTION_COPY_CODE"/>
             </intent-filter>
         </receiver>
 
@@ -540,11 +540,11 @@
 
 		<receiver android:name=".MusicPlayerReceiver" android:exported="false">
             <intent-filter>
-                <action android:name="org.telegram.android.musicplayer.close" />
-                <action android:name="org.telegram.android.musicplayer.pause" />
-                <action android:name="org.telegram.android.musicplayer.next" />
-                <action android:name="org.telegram.android.musicplayer.play" />
-                <action android:name="org.telegram.android.musicplayer.previous" />
+                <action android:name="${applicationId}.musicplayer.close" />
+                <action android:name="${applicationId}.musicplayer.pause" />
+                <action android:name="${applicationId}.musicplayer.next" />
+                <action android:name="${applicationId}.musicplayer.play" />
+                <action android:name="${applicationId}.musicplayer.previous" />
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
                 <action android:name="android.media.AUDIO_BECOMING_NOISY" />
             </intent-filter>
@@ -557,8 +557,9 @@
 
         <receiver android:name=".AppStartReceiver" android:enabled="true" android:exported="false">
             <intent-filter>
-                <action android:name="org.telegram.start" />
+                <action android:name="${applicationId}.start" />
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
 

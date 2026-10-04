@@ -20,6 +20,9 @@ dependencies {
     implementation files('../TMessagesProj/libs/libgsaverification-client.aar')
 }
 
+def vectorReleaseStorePassword = System.getenv('VECTOR_RELEASE_STORE_PASSWORD')
+def vectorReleaseKeyPassword = System.getenv('VECTOR_RELEASE_KEY_PASSWORD') ?: vectorReleaseStorePassword
+
 android {
     compileSdkVersion 35
     buildToolsVersion '35.0.0'
@@ -50,10 +53,14 @@ android {
         }
 
         release {
-            storeFile file("../TMessagesProj/config/release.keystore")
-            storePassword RELEASE_STORE_PASSWORD
-            keyAlias RELEASE_KEY_ALIAS
-            keyPassword RELEASE_KEY_PASSWORD
+            storeFile file("X:/vector-release.jks")
+            keyAlias "vector_release"
+            if (vectorReleaseStorePassword) {
+                storePassword vectorReleaseStorePassword
+            }
+            if (vectorReleaseKeyPassword) {
+                keyPassword vectorReleaseKeyPassword
+            }
         }
     }
 
@@ -85,7 +92,7 @@ android {
         release {
             debuggable false
             jniDebuggable false
-            signingConfig signingConfigs.release
+            signingConfig vectorReleaseStorePassword ? signingConfigs.release : null
             minifyEnabled true
             shrinkResources false
             multiDexEnabled true

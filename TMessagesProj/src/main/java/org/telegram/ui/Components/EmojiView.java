@@ -809,9 +809,9 @@ public class EmojiView extends FrameLayout implements
             addView(backgroundView, new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, searchFieldHeight));
 
             box = new FrameLayout(context);
-            box.setBackground(Theme.createRoundRectDrawable(dp(18), glassDesign ? getGlassIconColor(0.06f) : getThemedColor(Theme.key_chat_emojiSearchBackground)));
+            box.setBackground(Theme.createRoundRectDrawable(dp(Theme.MODERN_FIELD_RADIUS_DP), glassDesign ? getGlassIconColor(0.06f) : getThemedColor(Theme.key_chat_emojiSearchBackground)));
             box.setClipToOutline(true);
-            box.setOutlineProvider(ViewOutlineProviderImpl.boundsWithPaddingRoundRect(0, dp(18)));
+            box.setOutlineProvider(ViewOutlineProviderImpl.boundsWithPaddingRoundRect(0, dp(Theme.MODERN_FIELD_RADIUS_DP)));
             if (type == 2) {
                 addView(box, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 36, Gravity.FILL, 10, 8, 10, 8));
             } else {

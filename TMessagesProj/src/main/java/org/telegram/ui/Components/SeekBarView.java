@@ -75,6 +75,7 @@ public class SeekBarView extends FrameLayout {
     private int transitionThumbX;
     private int separatorsCount;
     private int lineWidthDp = 3;
+    private boolean customColors;
 
     private boolean twoSided;
     private final Theme.ResourcesProvider resourcesProvider;
@@ -110,14 +111,14 @@ public class SeekBarView extends FrameLayout {
         innerPaint1 = new Paint(Paint.ANTI_ALIAS_FLAG);
 
         outerPaint1 = new Paint(Paint.ANTI_ALIAS_FLAG);
-        outerPaint1.setColor(getThemedColor(Theme.key_player_progress));
+        outerPaint1.setColor(getAccentColor());
 
         selectorWidth = AndroidUtilities.dp(32);
         thumbSize = AndroidUtilities.dp(24);
         currentRadius = AndroidUtilities.dp(6);
 
         if (Build.VERSION.SDK_INT >= 21) {
-            hoverDrawable = Theme.createSelectorDrawable(ColorUtils.setAlphaComponent(getThemedColor(Theme.key_player_progress), 40), 1, AndroidUtilities.dp(16));
+            hoverDrawable = Theme.createSelectorDrawable(ColorUtils.setAlphaComponent(getAccentColor(), 40), 1, AndroidUtilities.dp(16));
             hoverDrawable.setCallback(this);
             hoverDrawable.setVisible(true, false);
         }
@@ -174,6 +175,7 @@ public class SeekBarView extends FrameLayout {
     }
 
     public void setColors(int inner, int outer) {
+        customColors = true;
         innerPaint1.setColor(inner);
         outerPaint1.setColor(outer);
         if (hoverDrawable != null) {
@@ -436,6 +438,15 @@ public class SeekBarView extends FrameLayout {
 
     @Override
     protected void onDraw(Canvas canvas) {
+        if (!customColors) {
+            int outerColor = getAccentColor();
+            if (outerPaint1.getColor() != outerColor) {
+                outerPaint1.setColor(outerColor);
+                if (hoverDrawable != null) {
+                    Theme.setSelectorDrawableColor(hoverDrawable, ColorUtils.setAlphaComponent(outerColor, 40), true);
+                }
+            }
+        }
         int thumbX = this.thumbX;
         if (!twoSided && separatorsCount > 1) {
             float step = (getMeasuredWidth() - selectorWidth) / ((float) separatorsCount - 1f);
@@ -896,5 +907,9 @@ public class SeekBarView extends FrameLayout {
 
     private int getThemedColor(int key) {
         return Theme.getColor(key, resourcesProvider);
+    }
+
+    private int getAccentColor() {
+        return Theme.getColorWithBrandFallback(Theme.key_player_progress, resourcesProvider);
     }
 }

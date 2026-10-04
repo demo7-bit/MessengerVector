@@ -1255,12 +1255,6 @@ public class CacheControlActivity extends BaseFragment implements NotificationCe
         clearDatabaseItem.setTextColor(Theme.getColor(Theme.key_text_RedBold));
         clearDatabaseItem.setSelectorColor(Theme.multAlpha(Theme.getColor(Theme.key_text_RedRegular), .12f));
 
-        if (BuildVars.DEBUG_PRIVATE_VERSION) {
-            resetDatabaseItem = otherItem.addSubItem(reset_database_id, R.drawable.msg_delete, "Full Reset Database");
-            resetDatabaseItem.setIconColor(Theme.getColor(Theme.key_text_RedRegular));
-            resetDatabaseItem.setTextColor(Theme.getColor(Theme.key_text_RedBold));
-            resetDatabaseItem.setSelectorColor(Theme.multAlpha(Theme.getColor(Theme.key_text_RedRegular), .12f));
-        }
         updateDatabaseItemSize();
 
         listAdapter = new ListAdapter(context);

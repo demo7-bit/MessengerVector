@@ -49,6 +49,7 @@ public class PasscodeViewDialog extends Dialog {
             protected void onHidden() {
                 PasscodeViewDialog.super.dismiss();
                 if (LaunchActivity.instance == null) return;
+                LaunchActivity.instance.onPasscodeViewHidden();
                 DrawerLayoutContainer drawerLayoutContainer = LaunchActivity.instance.drawerLayoutContainer;
                 drawerLayoutContainer.setScaleX(1f);
                 drawerLayoutContainer.setScaleY(1f);
@@ -79,8 +80,9 @@ public class PasscodeViewDialog extends Dialog {
         params.gravity = Gravity.FILL;
         params.dimAmount = 0;
         params.flags &= ~WindowManager.LayoutParams.FLAG_DIM_BEHIND;
-        params.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE;
-//        params.flags |= WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM;
+        params.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN |
+                WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING;
+        params.flags |= WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM;
         if (!BuildVars.DEBUG_PRIVATE_VERSION) {
             params.flags |= WindowManager.LayoutParams.FLAG_SECURE;
             AndroidUtilities.logFlagSecure();
@@ -97,6 +99,28 @@ public class PasscodeViewDialog extends Dialog {
         windowView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_VISIBLE);
 
         AndroidUtilities.setLightNavigationBar(this, false);
+    }
+
+    public void enforceImeSuppression() {
+        AndroidUtilities.setPasscodeImeSuppressed(true);
+        Window window = getWindow();
+        if (window == null) {
+            return;
+        }
+        WindowManager.LayoutParams params = window.getAttributes();
+        params.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN |
+                WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING;
+        params.flags |= WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM;
+        window.setAttributes(params);
+        passcodeView.enforceImeSuppression();
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            enforceImeSuppression();
+        }
     }
 
     @Override

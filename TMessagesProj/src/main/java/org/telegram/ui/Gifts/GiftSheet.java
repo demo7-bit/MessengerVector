@@ -1143,7 +1143,7 @@ public class GiftSheet extends BottomSheetWithRecyclerListView implements Notifi
             priceView.setPadding(dp(10), 0, dp(10), 0);
             priceView.setGravity(Gravity.CENTER);
 
-            priceView.setTextColor(0xFF3391D4);
+            priceView.setTextColor(Theme.getColorWithBrandFallback(Theme.key_featuredStickers_addButton, resourcesProvider));
             card.addView(priceLayout, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM, 0, 0, 0, 11));
 
             priceBackground = new StarsBackgroundView(context);
@@ -1547,8 +1547,9 @@ public class GiftSheet extends BottomSheetWithRecyclerListView implements Notifi
             priceView.setPadding(dp(10), 0, dp(10), 0);
             priceView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
             priceView.setText(tier.getFormattedPrice());
-            priceBackground.setBackground(Theme.createRoundRectDrawable(dp(13), 0x193391D4));
-            priceView.setTextColor(0xFF3391D4);
+            final int accentColor = Theme.getColorWithBrandFallback(Theme.key_featuredStickers_addButton, resourcesProvider);
+            priceBackground.setBackground(Theme.createRoundRectDrawable(dp(13), Theme.multAlpha(accentColor, .10f)));
+            priceView.setTextColor(accentColor);
             ((MarginLayoutParams) priceLayout.getLayoutParams()).topMargin = dp(130);
             ((FrameLayout.LayoutParams) priceLayout.getLayoutParams()).gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
 

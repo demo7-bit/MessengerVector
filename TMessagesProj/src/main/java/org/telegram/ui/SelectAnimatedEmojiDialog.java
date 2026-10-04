@@ -5146,12 +5146,12 @@ public class SelectAnimatedEmojiDialog extends FrameLayout implements Notificati
             if (drawBackground) {
                 setBackgroundColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground, resourcesProvider));
             }
-            box.setBackground(Theme.createRoundRectDrawable(dp(18), Theme.getColor(Theme.key_chat_emojiPanelBackground, resourcesProvider)));
+            box.setBackground(Theme.createRoundRectDrawable(dp(Theme.MODERN_FIELD_RADIUS_DP), Theme.getColor(Theme.key_chat_emojiPanelBackground, resourcesProvider)));
             box.setClipToOutline(true);
             box.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
                 public void getOutline(View view, Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), (int) dp(18));
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), (int) dp(Theme.MODERN_FIELD_RADIUS_DP));
                 }
             });
             addView(box, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 36, Gravity.TOP | Gravity.FILL_HORIZONTAL, 8, 8 + 4, 8, 8));

@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 @Keep
 public class PushListenerController {
@@ -44,12 +45,15 @@ public class PushListenerController {
     public @interface PushType {}
 
     public static final int NOTIFICATION_ID = 1;
-    private static CountDownLatch countDownLatch = new CountDownLatch(1);
+    private static final long PUSH_PROCESSING_TIMEOUT_MS = 20_000L;
 
     public static void sendRegistrationToServer(@PushType int pushType, String token) {
+        PushDiagnostics.log("token_registration_dispatch",
+                "pushType=" + pushType + " " + PushDiagnostics.tokenSummary(token));
         Utilities.stageQueue.postRunnable(() -> {
             ConnectionsManager.setRegId(token, pushType, SharedConfig.pushStringStatus);
             if (token == null) {
+                PushDiagnostics.log("token_registration_skipped", "pushType=" + pushType + " reason=no_token; MTProto fallback remains enabled");
                 return;
             }
             boolean sendStat = false;
@@ -59,12 +63,14 @@ public class PushListenerController {
             }
             SharedConfig.pushString = token;
             SharedConfig.pushType = pushType;
+            SharedConfig.saveConfig();
             for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
                 UserConfig userConfig = UserConfig.getInstance(a);
                 userConfig.registeredForPush = false;
                 userConfig.saveConfig(false);
                 if (userConfig.getClientUserId() != 0) {
                     final int currentAccount = a;
+                    PushDiagnostics.log("token_registration_account_queued", "account=" + currentAccount + " pushType=" + pushType);
                     if (sendStat) {
                         String tag = pushType == PUSH_TYPE_FIREBASE ? "fcm" : "hcm";
                         TLRPC.TL_help_saveAppLog req = new TLRPC.TL_help_saveAppLog();
@@ -95,10 +101,13 @@ public class PushListenerController {
 
     public static void processRemoteMessage(@PushType int pushType, String data, long time) {
         String tag = pushType == PUSH_TYPE_FIREBASE ? "FCM" : "HCM";
+        PushDiagnostics.log("push_processing_received",
+                "provider=" + tag + " payloadPresent=" + !TextUtils.isEmpty(data) + " sentTime=" + time);
         if (BuildVars.LOGS_ENABLED) {
             FileLog.d(tag + " PRE START PROCESSING");
         }
         long receiveTime = SystemClock.elapsedRealtime();
+        CountDownLatch processingLatch = new CountDownLatch(1);
         AndroidUtilities.runOnUIThread(() -> {
             if (BuildVars.LOGS_ENABLED) {
                 FileLog.d(tag + " PRE INIT APP");
@@ -115,6 +124,11 @@ public class PushListenerController {
                 String loc_key = null;
                 String jsonString = null;
                 try {
+                    if (TextUtils.isEmpty(data)) {
+                        PushDiagnostics.error("push_payload_missing", "provider=" + tag + "; waking MTProto connection", null);
+                        onDecryptError(processingLatch);
+                        return;
+                    }
                     byte[] bytes = Base64.decode(data, Base64.URL_SAFE);
                     NativeByteBuffer buffer = new NativeByteBuffer(bytes.length);
                     buffer.writeBytes(bytes);
@@ -128,7 +142,7 @@ public class PushListenerController {
                     byte[] inAuthKeyId = new byte[8];
                     buffer.readBytes(inAuthKeyId, true);
                     if (!Arrays.equals(SharedConfig.pushAuthKeyId, inAuthKeyId)) {
-                        onDecryptError();
+                        onDecryptError(processingLatch);
                         if (BuildVars.LOGS_ENABLED) {
                             FileLog.d(String.format(Locale.US, tag + " DECRYPT ERROR 2 k1=%s k2=%s, key=%s", Utilities.bytesToHex(SharedConfig.pushAuthKeyId), Utilities.bytesToHex(inAuthKeyId), Utilities.bytesToHex(SharedConfig.pushAuthKey)));
                         }
@@ -143,7 +157,7 @@ public class PushListenerController {
 
                     byte[] messageKeyFull = Utilities.computeSHA256(SharedConfig.pushAuthKey, 88 + 8, 32, buffer.buffer, 24, buffer.buffer.limit());
                     if (!Utilities.arraysEquals(messageKey, 0, messageKeyFull, 8)) {
-                        onDecryptError();
+                        onDecryptError(processingLatch);
                         if (BuildVars.LOGS_ENABLED) {
                             FileLog.d(String.format(tag + " DECRYPT ERROR 3, key = %s", Utilities.bytesToHex(SharedConfig.pushAuthKey)));
                         }
@@ -157,7 +171,7 @@ public class PushListenerController {
                     JSONObject json = new JSONObject(jsonString);
 
                     if (ApplicationLoader.applicationLoaderInstance != null && ApplicationLoader.applicationLoaderInstance.consumePush(currentAccount, json)) {
-                        countDownLatch.countDown();
+                        processingLatch.countDown();
                         return;
                     }
 
@@ -210,7 +224,7 @@ public class PushListenerController {
                         if (BuildVars.LOGS_ENABLED) {
                             FileLog.d(tag + " ACCOUNT NOT FOUND");
                         }
-                        countDownLatch.countDown();
+                        processingLatch.countDown();
                         return;
                     }
                     final int accountFinal = currentAccount = account;
@@ -218,9 +232,10 @@ public class PushListenerController {
                         if (BuildVars.LOGS_ENABLED) {
                             FileLog.d(tag + " ACCOUNT NOT ACTIVATED");
                         }
-                        countDownLatch.countDown();
+                        processingLatch.countDown();
                         return;
                     }
+                    PushDiagnostics.log("push_payload_decrypted", "provider=" + tag + " account=" + currentAccount + " locKey=" + loc_key);
                     if (BuildVars.LOGS_ENABLED) {
                         FileLog.d(tag + " " + loc_key);
                     }
@@ -230,14 +245,14 @@ public class PushListenerController {
                             String addr = custom.getString("addr");
                             String[] parts = addr.split(":");
                             if (parts.length != 2) {
-                                countDownLatch.countDown();
+                                processingLatch.countDown();
                                 return;
                             }
                             String ip = parts[0];
                             int port = Integer.parseInt(parts[1]);
                             ConnectionsManager.getInstance(currentAccount).applyDatacenterAddress(dc, ip, port);
                             ConnectionsManager.getInstance(currentAccount).resumeNetworkMaybe();
-                            countDownLatch.countDown();
+                            processingLatch.countDown();
                             return;
                         }
                         case "MESSAGE_ANNOUNCEMENT": {
@@ -252,7 +267,7 @@ public class PushListenerController {
                             updates.updates.add(update);
                             Utilities.stageQueue.postRunnable(() -> MessagesController.getInstance(accountFinal).processUpdates(updates, false));
                             ConnectionsManager.getInstance(currentAccount).resumeNetworkMaybe();
-                            countDownLatch.countDown();
+                            processingLatch.countDown();
                             return;
                         }
                         case "SESSION_REVOKE": {
@@ -262,12 +277,12 @@ public class PushListenerController {
                                     MessagesController.getInstance(accountFinal).performLogout(0);
                                 }
                             });
-                            countDownLatch.countDown();
+                            processingLatch.countDown();
                             return;
                         }
                         case "GEO_LIVE_PENDING": {
                             Utilities.stageQueue.postRunnable(() -> LocationController.getInstance(accountFinal).setNewLocationEndWatchTime());
-                            countDownLatch.countDown();
+                            processingLatch.countDown();
                             return;
                         }
                         case "OAUTH_REQUEST": {
@@ -306,7 +321,7 @@ public class PushListenerController {
                             ArrayList<MessageObject> arrayList = new ArrayList<>();
                             arrayList.add(messageObject);
                             FileLog.d("PushListenerController push OAUTH notification to NotificationsController of " + messageOwner.dialog_id);
-                            NotificationsController.getInstance(currentAccount).processNewMessages(arrayList, true, true, countDownLatch);
+                            NotificationsController.getInstance(currentAccount).processNewMessages(arrayList, true, true, processingLatch);
                             return;
                         }
                     }
@@ -1475,12 +1490,14 @@ public class PushListenerController {
                                     arrayList.add(messageObject);
                                     canRelease = false;
                                     FileLog.d("PushListenerController push notification to NotificationsController of " + messageOwner.dialog_id);
+                                    PushDiagnostics.log("notification_message_loaded",
+                                            "account=" + currentAccount + " dialog=" + messageOwner.dialog_id + " messageId=" + msg_id + " silent=" + silent);
                                     if (!messageObject.isStoryReactionPush && !messageObject.isReactionPush && !messageObject.isStoryMentionPush && !messageObject.isStoryPush && !messageObject.isStoryPushHidden && !mention && !pinned && msg_id > 0) {
                                         final long did = dialogId;
                                         final int mid = msg_id;
                                         AndroidUtilities.runOnUIThread(() -> MessagesController.getInstance(accountFinal).reportMessageDelivery(did, mid, true));
                                     }
-                                    NotificationsController.getInstance(currentAccount).processNewMessages(arrayList, true, true, countDownLatch);
+                                    NotificationsController.getInstance(currentAccount).processNewMessages(arrayList, true, true, processingLatch);
                                 }
                             } else if ("CONF_CALL_MISSED".equalsIgnoreCase(loc_key)) {
                                 final long call_id = custom.getLong("call_id");
@@ -1489,18 +1506,19 @@ public class PushListenerController {
                         }
                     }
                     if (canRelease) {
-                        countDownLatch.countDown();
+                        processingLatch.countDown();
                     }
 
                     ConnectionsManager.onInternalPushReceived(currentAccount);
                     ConnectionsManager.getInstance(currentAccount).resumeNetworkMaybe();
                 } catch (Throwable e) {
+                    PushDiagnostics.error("push_processing_exception", "provider=" + tag + " account=" + currentAccount + " locKey=" + loc_key, e);
                     if (currentAccount != -1) {
                         ConnectionsManager.onInternalPushReceived(currentAccount);
                         ConnectionsManager.getInstance(currentAccount).resumeNetworkMaybe();
-                        countDownLatch.countDown();
+                        processingLatch.countDown();
                     } else {
-                        onDecryptError();
+                        onDecryptError(processingLatch);
                     }
                     if (BuildVars.LOGS_ENABLED) {
                         FileLog.e("error in loc_key = " + loc_key + " json " + jsonString);
@@ -1509,13 +1527,44 @@ public class PushListenerController {
                 }
             });
         });
+        boolean completed = false;
         try {
-            countDownLatch.await();
-        } catch (Throwable ignore) {
-
+            completed = processingLatch.await(PUSH_PROCESSING_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
+        if (!completed) {
+            PushDiagnostics.error("push_processing_timeout",
+                    "provider=" + tag + " timeoutMs=" + PUSH_PROCESSING_TIMEOUT_MS + "; waking MTProto connection", null);
+            if (BuildVars.LOGS_ENABLED) {
+                FileLog.e(tag + " push processing timed out");
+            }
+            wakeUpNetworkForPush();
+            processingLatch.countDown();
+        }
+        PushDiagnostics.log("push_processing_finished",
+                "provider=" + tag + " completed=" + completed + " elapsedMs=" + (SystemClock.elapsedRealtime() - receiveTime));
         if (BuildVars.DEBUG_VERSION) {
             FileLog.d("finished " + tag + " service, time = " + (SystemClock.elapsedRealtime() - receiveTime));
+        }
+    }
+
+    public static void processDeletedMessages() {
+        PushDiagnostics.log("push_deleted_messages_resync", "starting application and waking every active account");
+        CountDownLatch processingLatch = new CountDownLatch(1);
+        AndroidUtilities.runOnUIThread(() -> {
+            ApplicationLoader.postInitApplication();
+            Utilities.stageQueue.postRunnable(() -> {
+                wakeUpNetworkForPush();
+                processingLatch.countDown();
+            });
+        });
+        try {
+            if (!processingLatch.await(PUSH_PROCESSING_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+                processingLatch.countDown();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -1643,14 +1692,19 @@ public class PushListenerController {
         return null;
     }
 
-    private static void onDecryptError() {
+    private static void wakeUpNetworkForPush() {
         for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
             if (UserConfig.getInstance(a).isClientActivated()) {
+                PushDiagnostics.log("mtproto_wake", "account=" + a);
                 ConnectionsManager.onInternalPushReceived(a);
                 ConnectionsManager.getInstance(a).resumeNetworkMaybe();
             }
         }
-        countDownLatch.countDown();
+    }
+
+    private static void onDecryptError(CountDownLatch processingLatch) {
+        wakeUpNetworkForPush();
+        processingLatch.countDown();
     }
 
     @Keep
@@ -1664,8 +1718,11 @@ public class PushListenerController {
 
     public final static class GooglePushListenerServiceProvider implements IPushListenerServiceProvider {
         public final static GooglePushListenerServiceProvider INSTANCE = new GooglePushListenerServiceProvider();
+        private static final long[] TOKEN_RETRY_DELAYS_MS = {5_000L, 30_000L, 120_000L, 600_000L, 1_800_000L};
 
         private Boolean hasServices;
+        private final Object tokenRequestLock = new Object();
+        private int tokenRequestId;
 
         private GooglePushListenerServiceProvider() {}
 
@@ -1682,6 +1739,9 @@ public class PushListenerController {
         @Override
         public void onRequestPushToken() {
             String currentPushString = SharedConfig.pushString;
+            PushDiagnostics.logFirebaseConfiguration(ApplicationLoader.applicationContext);
+            PushDiagnostics.log("firebase_token_request_scheduled",
+                    "cached=" + !TextUtils.isEmpty(currentPushString) + " " + PushDiagnostics.tokenSummary(currentPushString));
             if (!TextUtils.isEmpty(currentPushString)) {
                 if (BuildVars.DEBUG_PRIVATE_VERSION && BuildVars.LOGS_ENABLED) {
                     FileLog.d("FCM regId = " + currentPushString);
@@ -1690,31 +1750,90 @@ public class PushListenerController {
                 if (BuildVars.LOGS_ENABLED) {
                     FileLog.d("FCM Registration not found.");
                 }
+                ApplicationLoader.updatePushConnectionEnabledForAllAccounts();
             }
+            final int requestId;
+            synchronized (tokenRequestLock) {
+                requestId = ++tokenRequestId;
+            }
+            requestPushToken(requestId, 0);
+        }
+
+        private void requestPushToken(int requestId, int attempt) {
             Utilities.globalQueue.postRunnable(() -> {
+                synchronized (tokenRequestLock) {
+                    if (requestId != tokenRequestId) {
+                        return;
+                    }
+                }
                 try {
+                    PushDiagnostics.log("firebase_token_request", "attempt=" + (attempt + 1));
                     SharedConfig.pushStringGetTimeStart = SystemClock.elapsedRealtime();
                     FirebaseApp.initializeApp(ApplicationLoader.applicationContext);
                     FirebaseMessaging.getInstance().getToken()
                             .addOnCompleteListener(task -> {
-                                SharedConfig.pushStringGetTimeEnd = SystemClock.elapsedRealtime();
-                                if (!task.isSuccessful()) {
-                                    if (BuildVars.LOGS_ENABLED) {
-                                        FileLog.d("Failed to get regid");
+                                synchronized (tokenRequestLock) {
+                                    if (requestId != tokenRequestId) {
+                                        return;
                                     }
-                                    SharedConfig.pushStringStatus = "__FIREBASE_FAILED__";
-                                    PushListenerController.sendRegistrationToServer(getPushType(), null);
-                                    return;
-                                }
-                                String token = task.getResult();
-                                if (!TextUtils.isEmpty(token)) {
-                                    PushListenerController.sendRegistrationToServer(getPushType(), token);
+                                    SharedConfig.pushStringGetTimeEnd = SystemClock.elapsedRealtime();
+                                    if (!task.isSuccessful()) {
+                                        onTokenRequestFailedLocked(requestId, attempt, task.getException());
+                                        return;
+                                    }
+                                    String token = task.getResult();
+                                    if (!TextUtils.isEmpty(token)) {
+                                        tokenRequestId++;
+                                        onTokenReceivedLocked(token);
+                                    } else {
+                                        onTokenRequestFailedLocked(requestId, attempt, null);
+                                    }
                                 }
                             });
                 } catch (Throwable e) {
-                    FileLog.e(e);
+                    synchronized (tokenRequestLock) {
+                        if (requestId == tokenRequestId) {
+                            onTokenRequestFailedLocked(requestId, attempt, e);
+                        }
+                    }
                 }
             });
+        }
+
+        private void onTokenRequestFailedLocked(int requestId, int attempt, Throwable error) {
+            PushDiagnostics.error("firebase_token_failed", "attempt=" + (attempt + 1), error);
+            if (BuildVars.LOGS_ENABLED) {
+                FileLog.d("Failed to get FCM regid, attempt " + (attempt + 1));
+                if (error != null) {
+                    FileLog.e(error);
+                }
+            }
+            SharedConfig.pushStringStatus = "__FIREBASE_FAILED__";
+            ApplicationLoader.updatePushConnectionEnabledForAllAccounts();
+            if (TextUtils.isEmpty(SharedConfig.pushString)) {
+                PushListenerController.sendRegistrationToServer(getPushType(), null);
+            }
+            int retryIndex = Math.min(attempt, TOKEN_RETRY_DELAYS_MS.length - 1);
+            long delay = TOKEN_RETRY_DELAYS_MS[retryIndex];
+            PushDiagnostics.log("firebase_token_retry_scheduled", "attempt=" + (attempt + 2) + " delayMs=" + delay);
+            Utilities.globalQueue.postRunnable(() -> requestPushToken(requestId, attempt + 1), delay);
+        }
+
+        private void onTokenReceivedLocked(String token) {
+            PushDiagnostics.log("firebase_token_received", PushDiagnostics.tokenSummary(token));
+            ApplicationLoader.updatePushConnectionEnabledForAllAccounts();
+            PushListenerController.sendRegistrationToServer(getPushType(), token);
+        }
+
+        public void onNewToken(String token) {
+            if (TextUtils.isEmpty(token)) {
+                PushDiagnostics.error("firebase_token_refreshed_empty", "Firebase delivered an empty token", null);
+                return;
+            }
+            synchronized (tokenRequestLock) {
+                tokenRequestId++;
+                onTokenReceivedLocked(token);
+            }
         }
 
         @Override
@@ -1723,7 +1842,9 @@ public class PushListenerController {
                 try {
                     int resultCode = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(ApplicationLoader.applicationContext);
                     hasServices = resultCode == ConnectionResult.SUCCESS;
+                    PushDiagnostics.log("google_play_services", "resultCode=" + resultCode + " available=" + hasServices);
                 } catch (Exception e) {
+                    PushDiagnostics.error("google_play_services_check_failed", null, e);
                     FileLog.e(e);
                     hasServices = false;
                 }

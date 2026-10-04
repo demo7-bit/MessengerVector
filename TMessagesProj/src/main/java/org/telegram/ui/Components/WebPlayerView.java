@@ -61,6 +61,7 @@ import org.telegram.messenger.ImageReceiver;
 import org.telegram.messenger.R;
 import org.telegram.messenger.Utilities;
 import org.telegram.tgnet.TLRPC;
+import org.telegram.ui.ActionBar.Theme;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
@@ -1273,7 +1274,7 @@ public class WebPlayerView extends ViewGroup implements VideoPlayer.VideoPlayerD
             textPaint.setTextSize(AndroidUtilities.dp(12));
 
             progressPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            progressPaint.setColor(0xff19a7e8);
+            progressPaint.setColor(Theme.getColor(Theme.key_player_progress));
 
             progressInnerPaint = new Paint();
             progressInnerPaint.setColor(0xff959197);
@@ -1510,6 +1511,7 @@ public class WebPlayerView extends ViewGroup implements VideoPlayer.VideoPlayerD
                     if (bufferedPosition != 0 && duration != 0) {
                         canvas.drawRect(progressLineX, progressLineY, progressLineX + (progressLineEndX - progressLineX) * (bufferedPosition / (float) duration), progressLineY + AndroidUtilities.dp(3), inFullscreen ? progressBufferedPaint : progressInnerPaint);
                     }
+                    progressPaint.setColor(Theme.getColor(Theme.key_player_progress));
                     canvas.drawRect(progressLineX, progressLineY, progressX, progressLineY + AndroidUtilities.dp(3), progressPaint);
                     if (!isInline) {
                         canvas.drawCircle(progressX, cy, AndroidUtilities.dp(progressPressed ? 7 : 5), progressPaint);

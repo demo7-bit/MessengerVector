@@ -61,7 +61,7 @@ import org.telegram.ui.Stories.recorder.PreviewView;
 public class StoryLinkPreviewDialog extends Dialog {
 
     private final int currentAccount;
-    private final Theme.ResourcesProvider resourcesProvider = new DarkThemeResourceProvider();
+    private final Theme.ResourcesProvider resourcesProvider = new DarkThemeResourceProvider(true);
 
     private final FrameLayout windowView;
     private final LinearLayout containerView;

@@ -36,7 +36,7 @@ You will require Android Studio 2025.1.4, Android NDK 27.2.12479018 and Android 
    ```
 2. Copy your release.keystore into TMessagesProj/config
 3. Fill out RELEASE_KEY_PASSWORD, RELEASE_KEY_ALIAS, RELEASE_STORE_PASSWORD in gradle.properties to access your  release.keystore
-4.  Go to https://console.firebase.google.com/, create two android apps with application IDs org.telegram.messenger and org.telegram.messenger.beta, turn on firebase messaging and download google-services.json, which should be copied to the same folder as TMessagesProj.
+4. Go to https://console.firebase.google.com/, create two Android apps with application IDs app.vector.messenger and app.vector.messenger.beta, turn on Firebase Cloud Messaging, and download a google-services.json that contains both clients. Copy it to TMessagesProj_App.
 5. Open the project in the Studio (note that it should be opened, NOT imported).
 6. Fill out values in TMessagesProj/src/main/java/org/telegram/messenger/BuildVars.java – there’s a link for each of the variables showing where and which data to obtain.
 7. You are ready to compile Telegram.

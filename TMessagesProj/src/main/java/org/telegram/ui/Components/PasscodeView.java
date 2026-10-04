@@ -9,10 +9,12 @@ import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapShader;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
@@ -25,6 +27,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.RippleDrawable;
 import android.os.Build;
 import android.os.SystemClock;
 import android.text.Editable;
@@ -44,6 +47,7 @@ import android.view.ViewTreeObserver;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.animation.DecelerateInterpolator;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputConnection;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -451,7 +455,7 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
     public FrameLayout numbersFrameLayout;
     private ArrayList<TextView> numberTextViews;
     private ArrayList<TextView> lettersTextViews;
-    private ArrayList<FrameLayout> numberFrameLayouts;
+    private ArrayList<PasscodeButton> numberFrameLayouts;
     private FrameLayout passwordFrameLayout;
     private ImageView eraseView;
     private PasscodeButton fingerprintView;
@@ -465,6 +469,8 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
     private ImageView fingerprintImage;
     private View border;
     private int keyboardHeight = 0;
+    private boolean biometricPromptActive;
+    private boolean waitingForBiometricPrompt;
 
     private boolean selfCancelled;
     private FingerprintDialog fingerprintDialog;
@@ -512,6 +518,8 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
 
         setWillNotDraw(false);
         setVisibility(GONE);
+        setFocusable(true);
+        setFocusableInTouchMode(true);
 
         backgroundFrameLayout = new FrameLayout(context) {
 
@@ -574,7 +582,17 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
         passwordEditText2 = new AnimatingTextView(context);
         passwordFrameLayout.addView(passwordEditText2, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 70, 0, 70, 46));
 
-        passwordEditText = new EditTextBoldCursor(context);
+        passwordEditText = new EditTextBoldCursor(context) {
+            @Override
+            public boolean onCheckIsTextEditor() {
+                return false;
+            }
+
+            @Override
+            public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
+                return null;
+            }
+        };
         passwordEditText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 36);
         passwordEditText.setTextColor(0xffffffff);
         passwordEditText.setMaxLines(1);
@@ -582,6 +600,12 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
         passwordEditText.setGravity(Gravity.CENTER_HORIZONTAL);
         passwordEditText.setSingleLine(true);
         passwordEditText.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        passwordEditText.setShowSoftInputOnFocus(false);
+        passwordEditText.setLongClickable(false);
+        passwordEditText.setTextIsSelectable(false);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            passwordEditText.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
+        }
         passwordEditText.setTypeface(Typeface.DEFAULT);
         passwordEditText.setBackgroundDrawable(null);
         passwordEditText.setCursorColor(0xffffffff);
@@ -766,7 +790,6 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                 frameLayout.setImage(R.drawable.fingerprint);
                 setNextFocus(frameLayout, R.id.passcode_btn_1);
             } else {
-                frameLayout.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(30), 0x26ffffff, 0x4cffffff));
                 frameLayout.setContentDescription(a + "");
                 frameLayout.setNum(a);
                 if (a == 0) {
@@ -781,6 +804,7 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                     setNextFocus(frameLayout, ids[a + 1]);
                 }
             }
+            applyPasscodeButtonColors(frameLayout);
             frameLayout.setId(ids[a]);
             frameLayout.setOnClickListener(v -> {
                 if (fingerprintDialog != null || !pinShown)
@@ -892,7 +916,36 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
             FrameLayout frameLayout = numberFrameLayouts.get(a);
             numbersFrameLayout.addView(frameLayout, LayoutHelper.createFrame(BUTTON_SIZE, BUTTON_SIZE, Gravity.TOP | Gravity.LEFT));
         }
+        updatePasscodeButtonColors();
         checkFingerprintButton();
+    }
+
+    private void updatePasscodeButtonColors() {
+        for (PasscodeButton button : numberFrameLayouts) {
+            applyPasscodeButtonColors(button);
+        }
+    }
+
+    private void applyPasscodeButtonColors(PasscodeButton button) {
+        final boolean dark = Theme.isCurrentThemeDark();
+        final int normalColor = dark ? 0xff34383D : 0xffE3E6E9;
+        final int rippleColor = dark ? 0x28FFFFFF : 0x18000000;
+        final int primaryTextColor = dark ? 0xffF5F6F7 : 0xff2E3338;
+        final int secondaryTextColor = dark ? 0xffB8BDC3 : 0xff6D747B;
+        int tag = (Integer) button.getTag();
+        if (tag >= 0 && tag <= 9) {
+            GradientDrawable content = new GradientDrawable();
+            content.setShape(GradientDrawable.OVAL);
+            content.setColor(normalColor);
+            GradientDrawable mask = new GradientDrawable();
+            mask.setShape(GradientDrawable.OVAL);
+            mask.setColor(Color.WHITE);
+            button.setBackground(new RippleDrawable(ColorStateList.valueOf(rippleColor), content, mask));
+            button.setColors(primaryTextColor, secondaryTextColor);
+        } else {
+            button.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(30), 0, 0x26ffffff));
+            button.setColors(Color.WHITE, Color.WHITE);
+        }
     }
 
     private void animateBackground(MotionBackgroundDrawable motionBackgroundDrawable) {
@@ -1067,9 +1120,6 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                 retryTextView.setVisibility(INVISIBLE);
                 passwordFrameLayout.setVisibility(VISIBLE);
                 showPin(true);
-                if (SharedConfig.passcodeType == SharedConfig.PASSCODE_TYPE_PASSWORD) {
-                    AndroidUtilities.showKeyboard(passwordEditText);
-                }
             }
         }
     }
@@ -1081,20 +1131,9 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
 
     int resumeCount = 0;
     public void onResume() {
+        enforceImeSuppression();
         checkRetryTextView();
         if (retryTextView.getVisibility() != VISIBLE) {
-            if (SharedConfig.passcodeType == SharedConfig.PASSCODE_TYPE_PASSWORD) {
-                if (passwordEditText != null) {
-                    passwordEditText.requestFocus();
-                    AndroidUtilities.showKeyboard(passwordEditText);
-                }
-                AndroidUtilities.runOnUIThread(() -> {
-                    if (retryTextView.getVisibility() != VISIBLE && passwordEditText != null) {
-                        passwordEditText.requestFocus();
-                        AndroidUtilities.showKeyboard(passwordEditText);
-                    }
-                }, 200);
-            }
             checkFingerprint();
         }
     }
@@ -1109,6 +1148,21 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
 
     public void onPause() {
         AndroidUtilities.cancelRunOnUIThread(checkRunnable);
+    }
+
+    public void enforceImeSuppression() {
+        passwordEditText.setShowSoftInputOnFocus(false);
+        if (getVisibility() == VISIBLE) {
+            requestFocus();
+        }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasWindowFocus) {
+        super.onWindowFocusChanged(hasWindowFocus);
+        if (hasWindowFocus && getVisibility() == VISIBLE) {
+            enforceImeSuppression();
+        }
     }
 
     private KeyboardNotifier keyboardNotifier;
@@ -1180,25 +1234,35 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
         pinAnimator.start();
     }
 
-    private void checkFingerprint() {
+    private boolean checkFingerprint() {
+        if (biometricPromptActive) {
+            return true;
+        }
         if (Build.VERSION.SDK_INT < 23) {
-            return;
+            waitingForBiometricPrompt = false;
+            return false;
         }
         Activity parentActivity = AndroidUtilities.findActivity(getContext());
         if (parentActivity != null && fingerprintView.getVisibility() == VISIBLE && !ApplicationLoader.mainInterfacePaused && (!(parentActivity instanceof LaunchActivity) || ((LaunchActivity) parentActivity).allowShowFingerprintDialog(this))) {
             try {
                 if (BiometricManager.from(getContext()).canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS && FingerprintController.isKeyReady() && !FingerprintController.checkDeviceFingerprintsChanged()) {
+                    biometricPromptActive = true;
+                    waitingForBiometricPrompt = false;
                     final Executor executor = ContextCompat.getMainExecutor(getContext());
                     BiometricPrompt prompt = new BiometricPrompt(LaunchActivity.instance, executor, new BiometricPrompt.AuthenticationCallback() {
                         @Override
                         public void onAuthenticationError(int errMsgId, @NonNull CharSequence errString) {
                             FileLog.d("PasscodeView onAuthenticationError " + errMsgId + " \"" + errString + "\"");
+                            biometricPromptActive = false;
+                            waitingForBiometricPrompt = false;
                             showPin(true);
                         }
 
                         @Override
                         public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
                             FileLog.d("PasscodeView onAuthenticationSucceeded");
+                            biometricPromptActive = false;
+                            waitingForBiometricPrompt = false;
                             processDone(true);
                         }
 
@@ -1215,11 +1279,16 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                             .build();
                     prompt.authenticate(promptInfo);
                     showPin(false);
+                    return true;
                 }
             } catch (Exception e) {
+                biometricPromptActive = false;
+                waitingForBiometricPrompt = false;
                 FileLog.e(e);
             }
         }
+        waitingForBiometricPrompt = false;
+        return false;
     }
 
     public void onShow(boolean fingerprint, boolean animated) {
@@ -1265,24 +1334,20 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
     }
 
     public void onShow(boolean fingerprint, boolean animated, int x, int y, Runnable onShow, Runnable onStart) {
+        updatePasscodeButtonColors();
         checkFingerprintButton();
         checkRetryTextView();
+        waitingForBiometricPrompt = fingerprint && hasFingerprint();
         Activity parentActivity = AndroidUtilities.findActivity(getContext());
-        if (SharedConfig.passcodeType == SharedConfig.PASSCODE_TYPE_PASSWORD) {
-            if (!animated && retryTextView.getVisibility() != VISIBLE && passwordEditText != null) {
-                passwordEditText.requestFocus();
-                AndroidUtilities.showKeyboard(passwordEditText);
-            }
-        } else {
-            if (parentActivity != null) {
-                View currentFocus = parentActivity.getCurrentFocus();
-                if (currentFocus != null) {
-                    currentFocus.clearFocus();
-                    AndroidUtilities.hideKeyboard(parentActivity.getCurrentFocus());
-                }
+        if (parentActivity != null) {
+            View currentFocus = parentActivity.getCurrentFocus();
+            if (currentFocus != null) {
+                AndroidUtilities.hideKeyboard(currentFocus);
+                currentFocus.clearFocus();
             }
         }
         if (getVisibility() == View.VISIBLE) {
+            enforceImeSuppression();
             return;
         }
         setTranslationY(0);
@@ -1359,6 +1424,8 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
             fingerprintImage.setVisibility(fingerprintView.getVisibility());
         }
         setVisibility(VISIBLE);
+        requestFocus();
+        enforceImeSuppression();
         passwordEditText.setTransformationMethod(PasswordTransformationMethod.getInstance());
         passwordEditText.setText("");
         passwordEditText2.eraseAllCharacters(false);
@@ -1477,10 +1544,6 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                         public void onAnimationEnd(Animator animation) {
                             if (onShow != null) {
                                 onShow.run();
-                            }
-                            if (SharedConfig.passcodeType == SharedConfig.PASSCODE_TYPE_PASSWORD && retryTextView.getVisibility() != VISIBLE && passwordEditText != null) {
-                                passwordEditText.requestFocus();
-                                AndroidUtilities.showKeyboard(passwordEditText);
                             }
                         }
                     });
@@ -1944,6 +2007,12 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
             textView2.setVisibility(View.VISIBLE);
             textView1.setText("" + num);
             textView2.setText(letter(num));
+        }
+
+        public void setColors(int primaryColor, int secondaryColor) {
+            textView1.setTextColor(primaryColor);
+            textView2.setTextColor(secondaryColor);
+            imageView.setColorFilter(primaryColor);
         }
 
         public static String letter(int num) {

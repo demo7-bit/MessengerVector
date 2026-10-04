@@ -53,33 +53,25 @@ public class MusicPlayerReceiver extends BroadcastReceiver {
                     break;
             }
         } else {
-            switch (intent.getAction()) {
-                case MusicPlayerService.NOTIFY_PLAY:
-                    MediaController.getInstance().playMessage(MediaController.getInstance().getPlayingMessageObject());
-                    break;
-                case MusicPlayerService.NOTIFY_PAUSE:
-                case android.media.AudioManager.ACTION_AUDIO_BECOMING_NOISY:
-                    MediaController.getInstance().pauseMessage(MediaController.getInstance().getPlayingMessageObject());
-                    break;
-                case MusicPlayerService.NOTIFY_NEXT:
-                    MediaController.getInstance().playNextMessage();
-                    break;
-                case MusicPlayerService.NOTIFY_CLOSE:
-                    MediaController.getInstance().cleanupPlayer(true, true);
-                    break;
-                case MusicPlayerService.NOTIFY_PREVIOUS:
-                    MediaController.getInstance().playPreviousMessage();
-                    break;
-                case MusicPlayerService.NOTIFY_REPEAT:
-                    SharedConfig.setRepeatMode((SharedConfig.repeatMode + 1) % 3);
-                    break;
-                case MusicPlayerService.NOTIFY_SHUFFLE:
-                    if (SharedConfig.shuffleMusic) {
-                        MediaController.getInstance().setPlaybackOrderType(0);
-                    } else {
-                        MediaController.getInstance().setPlaybackOrderType(2);
-                    }
-                    break;
+            String action = intent.getAction();
+            if (MusicPlayerService.NOTIFY_PLAY.equals(action)) {
+                MediaController.getInstance().playMessage(MediaController.getInstance().getPlayingMessageObject());
+            } else if (MusicPlayerService.NOTIFY_PAUSE.equals(action) || android.media.AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(action)) {
+                MediaController.getInstance().pauseMessage(MediaController.getInstance().getPlayingMessageObject());
+            } else if (MusicPlayerService.NOTIFY_NEXT.equals(action)) {
+                MediaController.getInstance().playNextMessage();
+            } else if (MusicPlayerService.NOTIFY_CLOSE.equals(action)) {
+                MediaController.getInstance().cleanupPlayer(true, true);
+            } else if (MusicPlayerService.NOTIFY_PREVIOUS.equals(action)) {
+                MediaController.getInstance().playPreviousMessage();
+            } else if (MusicPlayerService.NOTIFY_REPEAT.equals(action)) {
+                SharedConfig.setRepeatMode((SharedConfig.repeatMode + 1) % 3);
+            } else if (MusicPlayerService.NOTIFY_SHUFFLE.equals(action)) {
+                if (SharedConfig.shuffleMusic) {
+                    MediaController.getInstance().setPlaybackOrderType(0);
+                } else {
+                    MediaController.getInstance().setPlaybackOrderType(2);
+                }
             }
         }
     }

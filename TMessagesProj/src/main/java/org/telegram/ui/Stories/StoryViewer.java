@@ -121,7 +121,7 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
     boolean keyboardVisible;
     private static TL_stories.StoryItem lastStoryItem;
 
-    Theme.ResourcesProvider resourcesProvider = new DarkThemeResourceProvider();
+    Theme.ResourcesProvider resourcesProvider = new DarkThemeResourceProvider(true);
     private boolean opening;
     ValueAnimator openCloseAnimator;
     ValueAnimator swipeToDissmissBackAnimator;

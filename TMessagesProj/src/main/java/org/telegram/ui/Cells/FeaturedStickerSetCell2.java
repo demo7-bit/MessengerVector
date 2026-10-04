@@ -178,7 +178,7 @@ public class FeaturedStickerSetCell2 extends FrameLayout implements Notification
 
                 @Override
                 public void draw(Canvas canvas) {
-                    paint.setColor(0xff44a8ea);
+                    paint.setColor(Theme.getColor(Theme.key_featuredStickers_unread, resourcesProvider));
                     canvas.drawCircle(AndroidUtilities.dp(4), AndroidUtilities.dp(5), AndroidUtilities.dp(3), paint);
                 }
 

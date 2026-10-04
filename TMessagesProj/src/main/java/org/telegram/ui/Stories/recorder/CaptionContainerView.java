@@ -174,7 +174,7 @@ public class CaptionContainerView extends FrameLayout {
 
         keyboardNotifier = new KeyboardNotifier(rootView, this::updateKeyboard);
 
-        editText = new EditTextEmoji(context, sizeNotifierFrameLayout, null, getEditTextStyle(), true, new DarkThemeResourceProvider()) {
+        editText = new EditTextEmoji(context, sizeNotifierFrameLayout, null, getEditTextStyle(), true, new DarkThemeResourceProvider(true)) {
             @Override
             public boolean dispatchTouchEvent(MotionEvent ev) {
                 if (CaptionContainerView.this instanceof CaptionStory && ((CaptionStory) CaptionContainerView.this).isRecording()) {
@@ -546,7 +546,7 @@ public class CaptionContainerView extends FrameLayout {
 
 
     private void createMentionsContainer() {
-        mentionContainer = new MentionsContainerView(getContext(), dialogId, 0, LaunchActivity.getLastFragment(), new DarkThemeResourceProvider()) {
+        mentionContainer = new MentionsContainerView(getContext(), dialogId, 0, LaunchActivity.getLastFragment(), new DarkThemeResourceProvider(true)) {
             @Override
             public void drawRoundRect(Canvas canvas, Rect rectTmp, float radius) {
                 rectF.set(rectTmp);

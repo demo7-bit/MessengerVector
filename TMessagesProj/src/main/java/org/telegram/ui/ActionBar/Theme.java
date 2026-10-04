@@ -2399,21 +2399,21 @@ public class Theme {
 
         public int getPreviewInColor() {
             if (firstAccentIsDefault && currentAccentId == DEFALT_THEME_ACCENT_ID) {
-                return 0xffffffff;
+                return VECTOR_CHAT_IN_BUBBLE_BLUE;
             }
             return previewInColor;
         }
 
         public int getPreviewOutColor() {
             if (firstAccentIsDefault && currentAccentId == DEFALT_THEME_ACCENT_ID) {
-                return 0xfff0fee0;
+                return VECTOR_CHAT_OUT_BUBBLE_BLUE;
             }
             return previewOutColor;
         }
 
         public int getPreviewBackgroundColor() {
             if (firstAccentIsDefault && currentAccentId == DEFALT_THEME_ACCENT_ID) {
-                return 0xffcfd9e3;
+                return TELEGRAM_DEFAULT_PREVIEW_BACKGROUND;
             }
             return previewBackgroundColor;
         }
@@ -2604,19 +2604,31 @@ public class Theme {
                     themeAccent.patternSlug = patternSlugs[a];
                 }
 
-                //override default themes
-                if (isHome(themeAccent) && name.equals("Dark Blue") || name.equals("Night")) {
-                    themeAccent.myMessagesAccentColor = 0xff258DE5;
-                    themeAccent.myMessagesGradientAccentColor1 = 0xff4272DF;
-                    themeAccent.myMessagesGradientAccentColor2 = 0xff8146D7;
-                    themeAccent.myMessagesGradientAccentColor3 = 0xff9F3EAA;
-                    if (name.equals("Night")) {
-                        themeAccent.patternIntensity = -0.57f;
-                        themeAccent.backgroundOverrideColor = 0xff6c7fa6;
-                        themeAccent.backgroundGradientOverrideColor1 = 0xff2e344b;
-                        themeAccent.backgroundGradientOverrideColor2 = 0xff7874a7;
-                        themeAccent.backgroundGradientOverrideColor3 = 0xff333258;
+                // Keep only the built-in home presets neutral and pattern-free.
+                if (isHome(themeAccent)) {
+                    if (name.equals("Blue")) {
+                        themeAccent.myMessagesAccentColor = VECTOR_CHAT_OUT_BUBBLE_BLUE;
+                        themeAccent.backgroundOverrideColor = 0x100000000L;
+                    } else if (name.equals("Day")) {
+                        themeAccent.myMessagesAccentColor = VECTOR_CHAT_OUT_BUBBLE_DAY;
+                        themeAccent.backgroundOverrideColor = TELEGRAM_CHAT_BACKGROUND_DAY;
+                    } else if (name.equals("Night")) {
+                        themeAccent.myMessagesAccentColor = VECTOR_CHAT_OUT_BUBBLE_NIGHT;
+                        themeAccent.backgroundOverrideColor = TELEGRAM_CHAT_BACKGROUND_NIGHT;
+                    } else if (name.equals("Dark Blue")) {
+                        themeAccent.myMessagesAccentColor = VECTOR_CHAT_OUT_BUBBLE_DARK_BLUE;
+                        themeAccent.backgroundOverrideColor = TELEGRAM_CHAT_BACKGROUND_DARK_BLUE;
                     }
+                    themeAccent.myMessagesGradientAccentColor1 = themeAccent.myMessagesAccentColor;
+                    themeAccent.myMessagesGradientAccentColor2 = 0;
+                    themeAccent.myMessagesGradientAccentColor3 = 0;
+                    themeAccent.myMessagesAnimated = false;
+                    themeAccent.backgroundGradientOverrideColor1 = 0x100000000L;
+                    themeAccent.backgroundGradientOverrideColor2 = 0x100000000L;
+                    themeAccent.backgroundGradientOverrideColor3 = 0x100000000L;
+                    themeAccent.patternSlug = "";
+                    themeAccent.patternIntensity = 0;
+                    themeAccent.patternMotion = false;
                 }
                 themeAccentsMap.put(themeAccent.id, themeAccent);
                 themeAccents.add(themeAccent);
@@ -3055,6 +3067,7 @@ public class Theme {
     private static ThemeInfo currentNightTheme;
     private static ThemeInfo currentDayTheme;
     private static ThemeInfo defaultTheme;
+    private static ThemeInfo defaultDarkTheme;
     private static ThemeInfo previousTheme;
     private static boolean changingWallpaper;
     private static boolean hasPreviousTheme;
@@ -4278,6 +4291,36 @@ public class Theme {
     private static int[] defaultColors;
     private static SparseIntArray fallbackKeys = new SparseIntArray();
     private static HashSet<Integer> themeAccentExclusionKeys = new HashSet<>();
+    public static final int MODERN_BUTTON_RADIUS_DP = 16;
+    public static final int MODERN_FIELD_RADIUS_DP = 12;
+    private static final int BRAND_ACCENT_COLOR = 0xffEB5E19;
+    private static final int BRAND_ACCENT_PRESSED_COLOR = 0xffF47B3B;
+    private static final int BRAND_ACCENT_MUTED_COLOR = 0xffF4A47B;
+    private static final int BRAND_ACCENT_PALE_COLOR = 0xffFFE8DC;
+    private static final String PREF_VECTOR_COLORS = "vector_colors";
+    private static boolean vectorColorsEnabled = true;
+    private static final int TELEGRAM_DEFAULT_PREVIEW_BACKGROUND = 0xffcfd9e3;
+    private static final int TELEGRAM_CHAT_BACKGROUND_LIGHT_1 = 0xffdbddbb;
+    private static final int TELEGRAM_CHAT_BACKGROUND_LIGHT_2 = 0xff6ba587;
+    private static final int TELEGRAM_CHAT_BACKGROUND_LIGHT_3 = 0xffd5d88d;
+    private static final int TELEGRAM_CHAT_BACKGROUND_LIGHT_4 = 0xff88b884;
+    private static final int TELEGRAM_CHAT_BACKGROUND_DAY = 0xffffffff;
+    private static final int TELEGRAM_CHAT_BACKGROUND_NIGHT = 0xff0f0f10;
+    private static final int TELEGRAM_CHAT_BACKGROUND_DARK_BLUE = 0xff151e27;
+    private static final int VECTOR_CHAT_IN_BUBBLE_BLUE = 0xfff3f4f5;
+    private static final int VECTOR_CHAT_OUT_BUBBLE_BLUE = 0xffffffff;
+    private static final int VECTOR_CHAT_IN_BUBBLE_DAY = 0xfff0f0f0;
+    private static final int VECTOR_CHAT_OUT_BUBBLE_DAY = 0xfffafafa;
+    private static final int VECTOR_CHAT_IN_BUBBLE_NIGHT = 0xff1f2123;
+    private static final int VECTOR_CHAT_OUT_BUBBLE_NIGHT = 0xff292c2f;
+    private static final int VECTOR_CHAT_IN_BUBBLE_DARK_BLUE = 0xff232e3b;
+    private static final int VECTOR_CHAT_OUT_BUBBLE_DARK_BLUE = 0xff2d3a48;
+    private static final int BRAND_ROLE_PRIMARY = 1;
+    private static final int BRAND_ROLE_PRESSED = 2;
+    private static final int BRAND_ROLE_PALE = 3;
+    private static final int BRAND_ROLE_MUTED = 4;
+    private static final int BRAND_ROLE_SELECTOR = 5;
+    private static SparseIntArray brandAccentRoles;
     private static SparseIntArray currentColorsNoAccent;
     private static SparseIntArray currentColors;
     private static SparseIntArray animatingColors;
@@ -4499,6 +4542,17 @@ public class Theme {
         for (int i = 0; i < keys_avatar_nameInMessage.length; i++) {
             themeAccentExclusionKeys.add(keys_avatar_nameInMessage[i]);
         }
+        themeAccentExclusionKeys.add(key_avatar_text);
+        themeAccentExclusionKeys.add(key_avatar_backgroundSaved);
+        themeAccentExclusionKeys.add(key_avatar_background2Saved);
+        themeAccentExclusionKeys.add(key_avatar_backgroundArchived);
+        themeAccentExclusionKeys.add(key_avatar_backgroundArchivedHidden);
+        themeAccentExclusionKeys.add(key_avatar_backgroundGray);
+        themeAccentExclusionKeys.add(key_avatar_backgroundInProfileBlue);
+        themeAccentExclusionKeys.add(key_avatar_backgroundActionBarBlue);
+        themeAccentExclusionKeys.add(key_avatar_actionBarSelectorBlue);
+        themeAccentExclusionKeys.add(key_avatar_actionBarIconBlue);
+        themeAccentExclusionKeys.add(key_avatar_subtitleInProfileBlue);
         for (int i = 0; i < keys_colors.length; i++) {
             themeAccentExclusionKeys.add(keys_colors[i]);
         }
@@ -4596,6 +4650,7 @@ public class Theme {
         themeAccentExclusionKeys.add(key_stories_circle_closeFriends1);
         themeAccentExclusionKeys.add(key_stories_circle_closeFriends2);
 
+        buildBrandAccentPalette();
 
         themes = new ArrayList<>();
         otherThemes = new ArrayList<>();
@@ -4604,6 +4659,7 @@ public class Theme {
         currentColors = new SparseIntArray();
 
         SharedPreferences themeConfig = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
+        vectorColorsEnabled = themeConfig.getBoolean(PREF_VECTOR_COLORS, true);
 
         ThemeInfo themeInfo = new ThemeInfo();
         themeInfo.name = "Blue";
@@ -4634,9 +4690,9 @@ public class Theme {
         themeInfo = new ThemeInfo();
         themeInfo.name = "Dark Blue";
         themeInfo.assetName = "darkblue.attheme";
-        themeInfo.previewBackgroundColor = 0xff5f6e82;
-        themeInfo.previewInColor = 0xff76869c;
-        themeInfo.previewOutColor = 0xff82a8e3;
+        themeInfo.previewBackgroundColor = TELEGRAM_CHAT_BACKGROUND_DARK_BLUE;
+        themeInfo.previewInColor = VECTOR_CHAT_IN_BUBBLE_DARK_BLUE;
+        themeInfo.previewOutColor = VECTOR_CHAT_OUT_BUBBLE_DARK_BLUE;
         themeInfo.sortIndex = 3;
         themeInfo.setAccentColorOptions(
                 new int[]    {                    0xFF927BD4,                    0xFF698AFB,                    0xFF23A7F0,                    0xFF7B71D1,                    0xFF69B955,                    0xFF2990EA,                    0xFF7082E9,                    0xFF66BAED,                    0xff3685fa,                    0xff46c8ed,                    0xff64AC5F,                    0xffeb7cb1,                    0xffee902a,                    0xffa281f0,                    0xffd34324,                    0xffeebd34,                    0xff7f8fab,                    0xff3581e3 },
@@ -4652,7 +4708,7 @@ public class Theme {
                 new int[]    {                            40,                            40,                            31,                            50,                            25,                            34,                            35,                            35,                            38,                            29,                            24,                            34,                            34,                            31,                            29,                            37,                            21,                            38 }
                 );
         sortAccents(themeInfo);
-        themes.add(themeInfo);
+        themes.add(defaultDarkTheme = themeInfo);
         themesDict.put("Dark Blue", currentNightTheme = themeInfo);
 
         themeInfo = new ThemeInfo();
@@ -4682,9 +4738,9 @@ public class Theme {
         themeInfo = new ThemeInfo();
         themeInfo.name = "Day";
         themeInfo.assetName = "day.attheme";
-        themeInfo.previewBackgroundColor = 0xffffffff;
-        themeInfo.previewInColor = 0xffebeef4;
-        themeInfo.previewOutColor = 0xff7cb2fe;
+        themeInfo.previewBackgroundColor = TELEGRAM_CHAT_BACKGROUND_DAY;
+        themeInfo.previewInColor = VECTOR_CHAT_IN_BUBBLE_DAY;
+        themeInfo.previewOutColor = VECTOR_CHAT_OUT_BUBBLE_DAY;
         themeInfo.sortIndex = 2;
         themeInfo.setAccentColorOptions(
                 new int[]    { 0xFF56A2C9, 0xFFCC6E83, 0xFFD08E47, 0xFFCC6462, 0xFF867CD2, 0xFF4C91DF, 0xFF57B4D9, 0xFF54B169, 0xFFD9BF3F, 0xFFCC6462, 0xFFCC6E83, 0xFF9B7BD2, 0xFFD79144, 0xFF7B88AB },
@@ -4706,9 +4762,9 @@ public class Theme {
         themeInfo = new ThemeInfo();
         themeInfo.name = "Night";
         themeInfo.assetName = "night.attheme";
-        themeInfo.previewBackgroundColor = 0xff535659;
-        themeInfo.previewInColor = 0xff747A84;
-        themeInfo.previewOutColor = 0xff75A2E6;
+        themeInfo.previewBackgroundColor = TELEGRAM_CHAT_BACKGROUND_NIGHT;
+        themeInfo.previewInColor = VECTOR_CHAT_IN_BUBBLE_NIGHT;
+        themeInfo.previewOutColor = VECTOR_CHAT_OUT_BUBBLE_NIGHT;
         themeInfo.sortIndex = 4;
         themeInfo.setAccentColorOptions(
                 new int[]    {                    0xFF6ABE3F,                    0xFF8D78E3,                    0xFFDE5E7E,                    0xFF5977E8,                    0xFFDBC11A,                    0xff3e88f7,                    0xff4ab5d3,                    0xff4ab841,                    0xffd95576,                    0xffe27d2b,                    0xff936cda,                    0xffd04336,                    0xffe8ae1c,                    0xff7988a3 },
@@ -4783,7 +4839,7 @@ public class Theme {
                 applyingTheme.currentAccentId = DEFALT_THEME_ACCENT_ID;
             } else if ("Dark".equals(theme)) {
                 applyingTheme = themeDarkBlue;
-                applyingTheme.currentAccentId = 9;
+                applyingTheme.currentAccentId = getDefaultAccentId(applyingTheme);
             } else if (theme != null) {
                 applyingTheme = themesDict.get(theme);
                 if (applyingTheme != null && !themeConfig.contains("lastDayTheme")) {
@@ -4799,7 +4855,7 @@ public class Theme {
                 applyingTheme.currentAccentId = DEFALT_THEME_ACCENT_ID;
             } else if ("Dark".equals(theme)) {
                 currentNightTheme = themeDarkBlue;
-                themeDarkBlue.currentAccentId = 9;
+                themeDarkBlue.currentAccentId = getDefaultAccentId(themeDarkBlue);
             } else if (theme != null) {
                 ThemeInfo t = themesDict.get(theme);
                 if (t != null) {
@@ -4953,6 +5009,9 @@ public class Theme {
                     }
                     if (info.themeAccentsMap != null && info.themeAccentsMap.get(info.currentAccentId) == null) {
                         info.currentAccentId = info.firstAccentIsDefault ? DEFALT_THEME_ACCENT_ID : 0;
+                        if ("Dark Blue".equals(info.getKey()) || "Night".equals(info.getKey())) {
+                            themeConfig.edit().putInt("accent_current_" + info.assetName, getDefaultAccentId(info)).apply();
+                        }
                     }
                     info.loadWallpapers(themeConfig);
                     ThemeAccent accent = info.getAccent(false);
@@ -6654,6 +6713,8 @@ public class Theme {
         if (accent != null) {
             shouldDrawGradientIcons = accent.fillAccentColors(currentColorsNoAccent, currentColors);
         }
+        applyBrandAccentColors(currentColors);
+        applyStandardChatPalette(currentColors);
         if (!messages) {
             boolean async = !(LaunchActivity.getLastFragment() instanceof ChatActivity);
             reloadWallpaper(async);
@@ -9489,6 +9550,249 @@ public class Theme {
         return drawable;
     }
 
+    private static boolean isStandardHomeTheme(ThemeInfo themeInfo) {
+        if (themeInfo == null || themeInfo != defaultTheme && themeInfo != defaultDarkTheme) {
+            return false;
+        }
+        ThemeAccent accent = themeInfo.getAccent(false);
+        return accent != null && isHome(accent);
+    }
+
+    private static void applyStandardChatPalette(SparseIntArray colors) {
+        if (!isStandardHomeTheme(currentTheme)) {
+            return;
+        }
+
+        int inBubble;
+        int inBubbleSelected;
+        int outBubble;
+        int outBubbleSelected;
+        int backgroundColor;
+        switch (currentTheme.name) {
+            case "Blue":
+                inBubble = VECTOR_CHAT_IN_BUBBLE_BLUE;
+                inBubbleSelected = 0xffe7e9eb;
+                outBubble = VECTOR_CHAT_OUT_BUBBLE_BLUE;
+                outBubbleSelected = 0xfff0f1f2;
+                backgroundColor = 0;
+                break;
+            case "Day":
+                inBubble = VECTOR_CHAT_IN_BUBBLE_DAY;
+                inBubbleSelected = 0xffeaeaea;
+                outBubble = VECTOR_CHAT_OUT_BUBBLE_DAY;
+                outBubbleSelected = 0xfff0f0f0;
+                backgroundColor = TELEGRAM_CHAT_BACKGROUND_DAY;
+                break;
+            case "Night":
+                inBubble = VECTOR_CHAT_IN_BUBBLE_NIGHT;
+                inBubbleSelected = 0xff303336;
+                outBubble = VECTOR_CHAT_OUT_BUBBLE_NIGHT;
+                outBubbleSelected = 0xff393d41;
+                backgroundColor = TELEGRAM_CHAT_BACKGROUND_NIGHT;
+                break;
+            case "Dark Blue":
+                inBubble = VECTOR_CHAT_IN_BUBBLE_DARK_BLUE;
+                inBubbleSelected = 0xff314a61;
+                outBubble = VECTOR_CHAT_OUT_BUBBLE_DARK_BLUE;
+                outBubbleSelected = 0xff3b5268;
+                backgroundColor = TELEGRAM_CHAT_BACKGROUND_DARK_BLUE;
+                break;
+            default:
+                return;
+        }
+
+        colors.put(key_chat_inBubble, inBubble);
+        colors.put(key_chat_inBubbleSelected, inBubbleSelected);
+        colors.put(key_chat_outBubble, outBubble);
+        colors.put(key_chat_outBubbleSelected, outBubbleSelected);
+        colors.put(key_chat_outBubbleGradient1, outBubble);
+        colors.delete(key_chat_outBubbleGradient2);
+        colors.delete(key_chat_outBubbleGradient3);
+        colors.put(key_chat_outBubbleGradientAnimated, 0);
+
+        int bubbleShadow = currentTheme.isDark() ? 0x32000000 : 0x1f000000;
+        colors.put(key_chat_inBubbleShadow, bubbleShadow);
+        colors.put(key_chat_outBubbleShadow, bubbleShadow);
+
+        if (backgroundColor == 0) {
+            colors.delete(key_chat_wallpaper);
+        } else {
+            colors.put(key_chat_wallpaper, backgroundColor);
+        }
+        colors.delete(key_chat_wallpaper_gradient_to1);
+        colors.delete(key_chat_wallpaper_gradient_to2);
+        colors.delete(key_chat_wallpaper_gradient_to3);
+        colors.delete(key_chat_wallpaper_gradient_rotation);
+    }
+
+    private static void buildBrandAccentPalette() {
+        brandAccentRoles = new SparseIntArray();
+        float[] hsv = new float[3];
+        for (int key = 0; key < defaultColors.length; key++) {
+            if (themeAccentExclusionKeys.contains(key)) {
+                continue;
+            }
+            String name = ThemeColors.getStringName(key);
+            if (name == null) {
+                continue;
+            }
+            String normalizedName = name.toLowerCase(Locale.US);
+            if (normalizedName.startsWith("avatar_")
+                    || normalizedName.startsWith("statisticchart")
+                    || normalizedName.startsWith("color_")
+                    || normalizedName.startsWith("code_")
+                    || normalizedName.startsWith("voipgroup_")
+                    || normalizedName.startsWith("premium")
+                    || normalizedName.startsWith("stories_circle")
+                    || normalizedName.startsWith("gift_")) {
+                continue;
+            }
+
+            int sourceColor = getBrandSourceColor(key);
+            if (Color.alpha(sourceColor) == 0) {
+                continue;
+            }
+            int opaqueColor = sourceColor | 0xff000000;
+            int rgb = opaqueColor & 0x00ffffff;
+            Color.colorToHSV(opaqueColor, hsv);
+            boolean legacyBlueAccent = hsv[0] >= 185f && hsv[0] <= 225f && hsv[1] >= .22f && hsv[2] >= .42f;
+            boolean brandAccent = rgb == (BRAND_ACCENT_COLOR & 0x00ffffff);
+            boolean brandPressed = rgb == (BRAND_ACCENT_PRESSED_COLOR & 0x00ffffff);
+            boolean brandPale = rgb == (BRAND_ACCENT_PALE_COLOR & 0x00ffffff);
+            if (!legacyBlueAccent && !brandAccent && !brandPressed && !brandPale) {
+                continue;
+            }
+
+            int role;
+            if (normalizedName.contains("selector")) {
+                role = BRAND_ROLE_SELECTOR;
+            } else if (normalizedName.contains("pressed") || brandPressed) {
+                role = BRAND_ROLE_PRESSED;
+            } else if (brandPale || ColorUtils.calculateLuminance(opaqueColor) >= .72) {
+                role = BRAND_ROLE_PALE;
+            } else if (hsv[1] < .45f || ColorUtils.calculateLuminance(opaqueColor) >= .45) {
+                role = BRAND_ROLE_MUTED;
+            } else {
+                role = BRAND_ROLE_PRIMARY;
+            }
+            brandAccentRoles.put(key, role);
+        }
+
+        brandAccentRoles.put(key_listSelector, BRAND_ROLE_SELECTOR);
+        brandAccentRoles.put(key_settings_listSelector, BRAND_ROLE_SELECTOR);
+        brandAccentRoles.put(key_dialogButtonSelector, BRAND_ROLE_SELECTOR);
+        brandAccentRoles.put(key_actionBarDefaultSelector, BRAND_ROLE_SELECTOR);
+        brandAccentRoles.put(key_actionBarWhiteSelector, BRAND_ROLE_SELECTOR);
+        brandAccentRoles.put(key_actionBarActionModeDefaultSelector, BRAND_ROLE_SELECTOR);
+        brandAccentRoles.put(key_actionBarTabSelector, BRAND_ROLE_SELECTOR);
+        brandAccentRoles.put(key_actionBarDefaultArchivedSelector, BRAND_ROLE_SELECTOR);
+        brandAccentRoles.put(key_profile_tabSelector, BRAND_ROLE_SELECTOR);
+
+        // These semantic roles are not blue in every upstream built-in palette, but they are part
+        // of Vector's standard accent. Explicit values from custom themes remain untouched because
+        // substitution is gated by isStandardHomeTheme().
+        brandAccentRoles.put(key_chats_sentCheck, BRAND_ROLE_PRIMARY);
+        brandAccentRoles.put(key_chats_sentReadCheck, BRAND_ROLE_PRIMARY);
+        brandAccentRoles.put(key_avatar_backgroundSaved, BRAND_ROLE_PRIMARY);
+        brandAccentRoles.put(key_avatar_background2Saved, BRAND_ROLE_PRIMARY);
+        brandAccentRoles.put(key_profile_status, BRAND_ROLE_PRIMARY);
+
+        // Group-call status colors stay semantic. Only Telegram-blue controls/actions follow the
+        // selected standard accent; custom themes remain outside isStandardHomeTheme().
+        brandAccentRoles.put(key_voipgroup_checkMenu, BRAND_ROLE_PRIMARY);
+        brandAccentRoles.put(key_voipgroup_soundButtonActive, BRAND_ROLE_PRIMARY);
+        brandAccentRoles.put(key_voipgroup_soundButtonActiveScrolled, BRAND_ROLE_PRIMARY);
+        brandAccentRoles.put(key_voipgroup_unmuteButton, BRAND_ROLE_PRIMARY);
+        brandAccentRoles.put(key_voipgroup_unmuteButton2, BRAND_ROLE_MUTED);
+        brandAccentRoles.put(key_voipgroup_actionBarItemsSelector, BRAND_ROLE_SELECTOR);
+        brandAccentRoles.put(key_voipgroup_windowBackgroundWhiteInputFieldActivated, BRAND_ROLE_PRIMARY);
+
+    }
+
+    private static int getBrandSourceColor(int key) {
+        int currentKey = key;
+        for (int i = 0; i < 8; i++) {
+            int color = defaultColors[currentKey];
+            if (Color.alpha(color) != 0) {
+                return color;
+            }
+            int fallbackKey = fallbackKeys.get(currentKey, -1);
+            if (fallbackKey < 0 || fallbackKey == currentKey) {
+                break;
+            }
+            currentKey = fallbackKey;
+        }
+        return 0;
+    }
+
+    private static int applyBrandAccentColor(int key, int color) {
+        if (!vectorColorsEnabled || !isStandardHomeTheme(currentTheme)) {
+            return color;
+        }
+        return getBrandAccentFallbackColor(key, color);
+    }
+
+    public static boolean isVectorColorsEnabled() {
+        return vectorColorsEnabled;
+    }
+
+    public static void setVectorColorsEnabled(boolean enabled) {
+        if (vectorColorsEnabled == enabled) {
+            return;
+        }
+        vectorColorsEnabled = enabled;
+        ApplicationLoader.applicationContext
+                .getSharedPreferences("themeconfig", Activity.MODE_PRIVATE)
+                .edit()
+                .putBoolean(PREF_VECTOR_COLORS, enabled)
+                .commit();
+        refreshThemeColors();
+    }
+
+    private static int getBrandAccentFallbackColor(int key, int color) {
+        if (brandAccentRoles == null) {
+            return color;
+        }
+        int role = brandAccentRoles.get(key, 0);
+        if (role == 0 || Color.alpha(color) == 0) {
+            return color;
+        }
+        int alpha = Color.alpha(color);
+        int replacement;
+        if (key == key_chat_messageLinkOut && currentTheme != null && currentTheme.isDark()) {
+            replacement = BRAND_ACCENT_MUTED_COLOR;
+        } else if (role == BRAND_ROLE_PRESSED) {
+            replacement = BRAND_ACCENT_PRESSED_COLOR;
+        } else if (role == BRAND_ROLE_PALE) {
+            replacement = BRAND_ACCENT_PALE_COLOR;
+        } else if (role == BRAND_ROLE_MUTED) {
+            replacement = BRAND_ACCENT_MUTED_COLOR;
+        } else {
+            replacement = BRAND_ACCENT_COLOR;
+        }
+        if (role == BRAND_ROLE_SELECTOR) {
+            alpha = Math.min(alpha, 0x22);
+        }
+        return ColorUtils.setAlphaComponent(replacement, alpha);
+    }
+
+    private static void applyBrandAccentColors(SparseIntArray colors) {
+        for (int index = 0; index < brandAccentRoles.size(); index++) {
+            int key = brandAccentRoles.keyAt(index);
+            int colorIndex = colors.indexOfKey(key);
+            if (colorIndex >= 0) {
+                colors.setValueAt(colorIndex, applyBrandAccentColor(key, colors.valueAt(colorIndex)));
+            }
+        }
+    }
+
+    private static void applyBrandAccentColors(int[] colors) {
+        for (int index = 0; index < brandAccentRoles.size(); index++) {
+            int key = brandAccentRoles.keyAt(index);
+            colors[key] = applyBrandAccentColor(key, colors[key]);
+        }
+    }
+
     public static int getDefaultColor(int key) {
         int value = defaultColors[key];
         if (value == 0) {
@@ -9497,7 +9801,7 @@ public class Theme {
             }
             return 0xffff0000;
         }
-        return value;
+        return applyBrandAccentColor(key, value);
     }
 
     public static boolean hasThemeKey(int key) {
@@ -9547,6 +9851,37 @@ public class Theme {
         return getColor(key);
     }
 
+    /**
+     * Resolves a semantic accent key without overriding an explicit resource-provider value.
+     * Without a provider, normal theme resolution applies Vector branding only to the built-in
+     * Vector home themes.
+     */
+    public static int getColorWithBrandFallback(int key, ResourcesProvider provider) {
+        return provider != null ? provider.getColor(key) : getColor(key);
+    }
+
+    /**
+     * Returns the theme's original value before Vector's standard-theme accent substitution.
+     * Explicit values supplied by custom themes (including their fallback keys) are preserved.
+     */
+    public static int getColorWithoutBrandAccent(int key) {
+        int currentKey = key;
+        if (currentColorsNoAccent != null) {
+            for (int i = 0; i < 8; i++) {
+                int index = currentColorsNoAccent.indexOfKey(currentKey);
+                if (index >= 0) {
+                    return currentColorsNoAccent.valueAt(index);
+                }
+                int fallbackKey = fallbackKeys.get(currentKey, -1);
+                if (fallbackKey < 0 || fallbackKey == currentKey) {
+                    break;
+                }
+                currentKey = fallbackKey;
+            }
+        }
+        return defaultColors[key];
+    }
+
     public static int getColor(int key) {
         return getColor(key, null, false);
     }
@@ -9556,6 +9891,10 @@ public class Theme {
     }
 
     public static int getColor(int key, boolean[] isDefault, boolean ignoreAnimation) {
+        return applyBrandAccentColor(key, getColorInternal(key, isDefault, ignoreAnimation));
+    }
+
+    private static int getColorInternal(int key, boolean[] isDefault, boolean ignoreAnimation) {
         if (!ignoreAnimation && animatingColors != null) {
             int index = animatingColors.indexOfKey(key);
             if (index >= 0) {
@@ -9961,6 +10300,18 @@ public class Theme {
             settings.isWallpaperMotion = currentTheme.isMotion;
             settings.isPatternWallpaper = currentTheme.patternBgColor != 0;
         }
+        boolean usePatternlessStandardWallpaper = isStandardHomeTheme(currentTheme)
+                && (overrideWallpaper == null || overrideWallpaper.isDefault());
+        if (usePatternlessStandardWallpaper) {
+            wallpaperFile = null;
+            themedWallpaperLink = null;
+            themedWallpaperFileOffset = -1;
+            intensity = 0;
+            wallpaperMotion = false;
+            wallpaperDocument = null;
+            settings.isWallpaperMotion = false;
+            settings.isPatternWallpaper = false;
+        }
         if (!overrideTheme) {
             int backgroundColor = defaultTheme ? 0 : currentColors.get(key_chat_wallpaper);
             int gradientToColor3 = currentColors.get(key_chat_wallpaper_gradient_to3);
@@ -10090,7 +10441,7 @@ public class Theme {
             int selectedColor = overrideWallpaper != null ? overrideWallpaper.color : 0;
             try {
                 if (overrideWallpaper == null || overrideWallpaper.isDefault()) {
-                    settings.wallpaper = createDefaultWallpaper();
+                    settings.wallpaper = createDefaultWallpaper(currentTheme, 0, 0);
                     settings.isCustomTheme = false;
                 } else if (!overrideWallpaper.isColor() || overrideWallpaper.gradientColor1 != 0) {
                     if (selectedColor != 0 && (!isPatternWallpaper || overrideWallpaper.gradientColor2 != 0)) {
@@ -10145,7 +10496,7 @@ public class Theme {
                             }
                         }
                         if (settings.wallpaper == null) {
-                            settings.wallpaper = createDefaultWallpaper();
+                            settings.wallpaper = createDefaultWallpaper(currentTheme, 0, 0);
                             settings.isCustomTheme = false;
                         }
                     }
@@ -10185,7 +10536,34 @@ public class Theme {
     }
 
     public static Drawable createDefaultWallpaper(int w, int h) {
-        MotionBackgroundDrawable motionBackgroundDrawable = new MotionBackgroundDrawable(0xffdbddbb, 0xff6ba587, 0xffd5d88d, 0xff88b884, w != 0);
+        return createDefaultWallpaper(currentTheme, w, h);
+    }
+
+    private static Drawable createDefaultWallpaper(ThemeInfo themeInfo, int w, int h) {
+        if (isStandardHomeTheme(themeInfo)) {
+            if ("Day".equals(themeInfo.name)) {
+                return new ColorDrawable(TELEGRAM_CHAT_BACKGROUND_DAY);
+            } else if ("Night".equals(themeInfo.name)) {
+                return new ColorDrawable(TELEGRAM_CHAT_BACKGROUND_NIGHT);
+            } else if ("Dark Blue".equals(themeInfo.name)) {
+                return new ColorDrawable(TELEGRAM_CHAT_BACKGROUND_DARK_BLUE);
+            }
+            return new MotionBackgroundDrawable(
+                    TELEGRAM_CHAT_BACKGROUND_LIGHT_1,
+                    TELEGRAM_CHAT_BACKGROUND_LIGHT_2,
+                    TELEGRAM_CHAT_BACKGROUND_LIGHT_3,
+                    TELEGRAM_CHAT_BACKGROUND_LIGHT_4,
+                    w != 0
+            );
+        }
+
+        MotionBackgroundDrawable motionBackgroundDrawable = new MotionBackgroundDrawable(
+                TELEGRAM_CHAT_BACKGROUND_LIGHT_1,
+                TELEGRAM_CHAT_BACKGROUND_LIGHT_2,
+                TELEGRAM_CHAT_BACKGROUND_LIGHT_3,
+                TELEGRAM_CHAT_BACKGROUND_LIGHT_4,
+                w != 0
+        );
         if (w <= 0 || h <= 0) {
             w = Math.min(AndroidUtilities.displaySize.x, AndroidUtilities.displaySize.y);
             h = Math.max(AndroidUtilities.displaySize.x, AndroidUtilities.displaySize.y);
@@ -10564,6 +10942,19 @@ public class Theme {
 
     public static boolean isCurrentThemeDay() {
         return !getActiveTheme().isDark();
+    }
+
+    public static int getDefaultAccentId(ThemeInfo themeInfo) {
+        if (themeInfo != null) {
+            String key = themeInfo.getKey();
+            if ("Day".equals(key)) {
+                return 9;
+            }
+            if ("Night".equals(key) || "Dark Blue".equals(key)) {
+                return 0;
+            }
+        }
+        return DEFALT_THEME_ACCENT_ID;
     }
 
     public static boolean isHome(ThemeAccent accent) {

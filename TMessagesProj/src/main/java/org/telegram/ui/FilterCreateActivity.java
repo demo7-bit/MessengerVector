@@ -2194,9 +2194,10 @@ public class FilterCreateActivity extends BaseFragment {
         int lastColor;
         @Override
         public void draw(@NonNull Canvas canvas, CharSequence text, int start, int end, float x, int top, int y, int bottom, @NonNull Paint paint) {
-            if (paint.getColor() != lastColor) {
+            int color = paint.getColor();
+            if (color != lastColor) {
                 if (getDrawable() != null) {
-                    getDrawable().setColorFilter(new PorterDuffColorFilter(lastColor = paint.getColor(), PorterDuff.Mode.MULTIPLY));
+                    getDrawable().setColorFilter(new PorterDuffColorFilter(lastColor = color, PorterDuff.Mode.MULTIPLY));
                 }
             }
             super.draw(canvas, text, start, end, x, top, y, bottom, paint);

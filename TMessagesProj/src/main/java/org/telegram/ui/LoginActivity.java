@@ -90,7 +90,6 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Space;
 import android.widget.TextView;
-import android.widget.Toast;
 import android.widget.ViewSwitcher;
 
 import androidx.annotation.IntDef;
@@ -124,7 +123,6 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.AuthTokensHelper;
 import org.telegram.messenger.BillingController;
-import org.telegram.messenger.BuildConfig;
 import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.CallReceiver;
 import org.telegram.messenger.ContactsController;
@@ -223,8 +221,6 @@ import java.util.concurrent.atomic.AtomicReference;
 public class LoginActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
     public final static boolean ENABLE_PASTED_TEXT_PROCESSING = false;
     private final static int SHOW_DELAY = SharedConfig.getDevicePerformanceClass() <= SharedConfig.PERFORMANCE_CLASS_AVERAGE ? 150 : 100;
-
-    public static final boolean TEST_BACKEND_IN_STORE = false;
 
     public final static int AUTH_TYPE_MESSAGE = 1,
             AUTH_TYPE_SMS = 2,
@@ -538,6 +534,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
     private View cachedFragmentView;
     @Override
     public View createView(Context context) {
+        Theme.applyTheme(Theme.getActiveTheme(), false, Theme.isCurrentThemeNight());
         if (cachedFragmentView != null) {
             fragmentView = cachedFragmentView;
             cachedFragmentView = null;
@@ -918,6 +915,9 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
     @Override
     public void onResume() {
         super.onResume();
+        if (fragmentView != null && floatingButton != null) {
+            updateColors();
+        }
         if (newAccount) {
             ConnectionsManager.getInstance(currentAccount).setAppPaused(false, false);
         }
@@ -1963,11 +1963,10 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         private OutlineTextContainerView phoneOutlineView;
         private TextView plusTextView;
         private LinkSpanDrawable.LinksTextView subtitleView;
+        private TextView unofficialClientNoticeView;
         private View codeDividerView;
         private ImageView chevronRight;
         private CheckBoxCell syncContactsBox;
-        private CheckBoxCell testBackendCheckBox;
-
         @CountryState
         private int countryState = COUNTRY_STATE_NOT_SET_OR_VALID;
         private CountrySelectActivity.Country currentCountry;
@@ -1983,37 +1982,10 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         private boolean nextPressed = false;
         private boolean confirmedNumber = false;
 
-        private int titleClickCount = 0;
-        private long lastTitleClick = 0;
-        private Toast lastTitleToast;
-        private void showDebugMenu() {
-            new AlertDialog.Builder(getContext())
-                .setTitle(LocaleController.getString(R.string.SettingsDebug))
-                .setItems(new String[] {
-                    BuildVars.LOGS_ENABLED ? LocaleController.getString(R.string.DebugMenuDisableLogs) : LocaleController.getString(R.string.DebugMenuEnableLogs),
-                    LocaleController.getString(R.string.DebugSendLogs)
-                }, (di, b) -> {
-                    if (b == 0) {
-                        BuildVars.LOGS_ENABLED = !BuildVars.LOGS_ENABLED;
-                        ApplicationLoader.applicationContext.getSharedPreferences("systemConfig", Context.MODE_PRIVATE).edit().putBoolean("logsEnabled", BuildVars.LOGS_ENABLED).commit();
-                        BulletinFactory.of(LoginActivity.this).createSimpleBulletin(R.raw.chats_infotip, BuildVars.LOGS_ENABLED ? "Logs enabled." : "Logs disabled.").show();
-                        if (BuildVars.LOGS_ENABLED) {
-                            FileLog.d("app start time = " + ApplicationLoader.startTime);
-                            try {
-                                FileLog.d("buildVersion = " + ApplicationLoader.applicationContext.getPackageManager().getPackageInfo(ApplicationLoader.applicationContext.getPackageName(), 0).versionCode);
-                            } catch (Exception e) {
-                                FileLog.e(e);
-                            }
-                        }
-                    } else {
-                        ProfileActivity.sendLogs(getParentActivity(), false);
-                    }
-                })
-                .show();
-        }
-
         public PhoneView(Context context) {
             super(context);
+
+            testBackend = getConnectionsManager().isTestBackend();
 
             setOrientation(VERTICAL);
             setGravity(Gravity.CENTER);
@@ -2025,34 +1997,22 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             titleView.setGravity(Gravity.CENTER);
             titleView.setLineSpacing(dp(2), 1.0f);
             addView(titleView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 32, 0, 32, 0));
-            titleView.setOnClickListener(v -> {
-                if (lastTitleToast != null) {
-                    lastTitleToast.cancel();
-                    lastTitleToast = null;
-                }
-                final long now = System.currentTimeMillis();
-                if (titleClickCount > 0 && now - lastTitleClick > 1500) {
-                    titleClickCount = 0;
-                }
-                titleClickCount++;
-                lastTitleClick = now;
-
-                if (titleClickCount >= 5) {
-                    titleClickCount = 0;
-                    lastTitleClick = 0;
-                    showDebugMenu();
-                } else if (titleClickCount > 1) {
-                    lastTitleToast = Toast.makeText(context, LocaleController.formatPluralString("DebugMenuLoginToast", 5 - titleClickCount), Toast.LENGTH_SHORT);
-                    lastTitleToast.show();
-                }
-            });
-
             subtitleView = new LinkSpanDrawable.LinksTextView(context);
             subtitleView.setText(getString(activityMode == MODE_CHANGE_PHONE_NUMBER ? R.string.ChangePhoneHelp : R.string.StartText));
             subtitleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
             subtitleView.setGravity(Gravity.CENTER);
             subtitleView.setLineSpacing(dp(2), 1.0f);
             addView(subtitleView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 32, 8, 32, 0));
+
+            if (activityMode == MODE_LOGIN) {
+                unofficialClientNoticeView = new TextView(context);
+                unofficialClientNoticeView.setText(R.string.LoginUnofficialTelegramNotice);
+                unofficialClientNoticeView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
+                unofficialClientNoticeView.setGravity(Gravity.CENTER);
+                unofficialClientNoticeView.setLineSpacing(dp(1), 1.0f);
+                unofficialClientNoticeView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText6));
+                addView(unofficialClientNoticeView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 32, 12, 32, 12));
+            }
 
             countryButton = new TextViewSwitcher(context);
             countryButton.setFactory(() -> {
@@ -2475,28 +2435,6 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 });
             }
 
-            final boolean allowTestBackend = (BuildVars.DEBUG_VERSION || TEST_BACKEND_IN_STORE && !BuildConfig.BUNDLE) || getConnectionsManager().isTestBackend();
-            if (allowTestBackend && activityMode == MODE_LOGIN) {
-                testBackendCheckBox = new CheckBoxCell(context, 2);
-                testBackendCheckBox.setText(getString(R.string.DebugTestBackend), "", testBackend = getConnectionsManager().isTestBackend(), false);
-                addView(testBackendCheckBox, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, Gravity.LEFT | Gravity.TOP, 16, 0, 16 + (LocaleController.isRTL && AndroidUtilities.isSmallScreen() ? 56 : 0), 0));
-                bottomMargin -= 24;
-                testBackendCheckBox.setOnClickListener(v -> {
-                    if (getParentActivity() == null) {
-                        return;
-                    }
-                    CheckBoxCell cell = (CheckBoxCell) v;
-                    testBackend = !testBackend;
-                    cell.setChecked(testBackend, true);
-
-                    boolean testBackend = allowTestBackend && getConnectionsManager().isTestBackend();
-                    if (testBackend != LoginActivity.this.testBackend) {
-                        getConnectionsManager().switchBackend(false);
-                    }
-                    loadCountries();
-                });
-            }
-
             if (bottomMargin > 0 && !AndroidUtilities.isSmallScreen()) {
                 Space bottomSpacer = new Space(context);
                 bottomSpacer.setMinimumHeight(AndroidUtilities.dp(bottomMargin));
@@ -2670,38 +2608,36 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
         @Override
         public void updateColors() {
-            titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            subtitleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6));
-            subtitleView.setLinkTextColor(Theme.getColor(Theme.key_chat_messageLinkIn));
+            titleView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+            subtitleView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText6));
+            subtitleView.setLinkTextColor(getThemedColor(Theme.key_chat_messageLinkIn));
+            if (unofficialClientNoticeView != null) {
+                unofficialClientNoticeView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText6));
+            }
             for (int i = 0; i < countryButton.getChildCount(); i++) {
                 TextView textView = (TextView) countryButton.getChildAt(i);
-                textView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-                textView.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
+                textView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+                textView.setHintTextColor(getThemedColor(Theme.key_windowBackgroundWhiteHintText));
             }
 
-            chevronRight.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
+            chevronRight.setColorFilter(getThemedColor(Theme.key_windowBackgroundWhiteHintText));
             chevronRight.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector), 1));
 
-            plusTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+            plusTextView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
 
-            codeField.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            codeField.setCursorColor(Theme.getColor(Theme.key_windowBackgroundWhiteInputFieldActivated));
+            codeField.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+            codeField.setCursorColor(getThemedColor(Theme.key_windowBackgroundWhiteInputFieldActivated));
 
-            codeDividerView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhiteInputField));
+            codeDividerView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhiteInputField));
 
-            phoneField.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            phoneField.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
-            phoneField.setCursorColor(Theme.getColor(Theme.key_windowBackgroundWhiteInputFieldActivated));
+            phoneField.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+            phoneField.setHintTextColor(getThemedColor(Theme.key_windowBackgroundWhiteHintText));
+            phoneField.setCursorColor(getThemedColor(Theme.key_windowBackgroundWhiteInputFieldActivated));
 
             if (syncContactsBox != null) {
                 syncContactsBox.setSquareCheckBoxColor(Theme.key_checkboxSquareUnchecked, Theme.key_checkboxSquareBackground, Theme.key_checkboxSquareCheck);
                 syncContactsBox.updateTextColor();
             }
-            if (testBackendCheckBox != null) {
-                testBackendCheckBox.setSquareCheckBoxColor(Theme.key_checkboxSquareUnchecked, Theme.key_checkboxSquareBackground, Theme.key_checkboxSquareCheck);
-                testBackendCheckBox.updateTextColor();
-            }
-
             phoneOutlineView.updateColor();
             countryOutlineView.updateColor();
         }
@@ -3042,7 +2978,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 needShowAlert(getString(R.string.RestorePasswordNoEmailTitle), getString("ChooseCountry", R.string.ChooseCountry));
                 needHideProgress(false);
                 return;
-            } else if (countryState == COUNTRY_STATE_INVALID && !BuildVars.DEBUG_VERSION && !(TEST_BACKEND_IN_STORE && !BuildConfig.BUNDLE)) {
+            } else if (countryState == COUNTRY_STATE_INVALID && !BuildVars.DEBUG_VERSION) {
                 needShowAlert(getString(R.string.RestorePasswordNoEmailTitle), getString(R.string.WrongCountry));
                 needHideProgress(false);
                 return;
@@ -4106,16 +4042,16 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
         @Override
         public void updateColors() {
-            confirmTextView.setTextColor(Theme.getColor(isInCancelAccountDeletionMode() ? Theme.key_windowBackgroundWhiteBlackText : Theme.key_windowBackgroundWhiteGrayText6));
-            confirmTextView.setLinkTextColor(Theme.getColor(Theme.key_chats_actionBackground));
-            titleTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+            confirmTextView.setTextColor(getThemedColor(isInCancelAccountDeletionMode() ? Theme.key_windowBackgroundWhiteBlackText : Theme.key_windowBackgroundWhiteGrayText6));
+            confirmTextView.setLinkTextColor(getThemedColor(Theme.key_chats_actionBackground));
+            titleTextView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
 
             if (currentType == AUTH_TYPE_MISSED_CALL) {
-                missedCallDescriptionSubtitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
-                missedCallDescriptionSubtitle2.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
-                missedCallArrowIcon.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteInputFieldActivated), PorterDuff.Mode.SRC_IN));
-                missedCallPhoneIcon.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText), PorterDuff.Mode.SRC_IN));
-                prefixTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+                missedCallDescriptionSubtitle.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
+                missedCallDescriptionSubtitle2.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
+                missedCallArrowIcon.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_windowBackgroundWhiteInputFieldActivated), PorterDuff.Mode.SRC_IN));
+                missedCallPhoneIcon.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_windowBackgroundWhiteBlackText), PorterDuff.Mode.SRC_IN));
+                prefixTextView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
             }
 
             applyLottieColors(hintDrawable);
@@ -4131,19 +4067,19 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             if (timeTextColorTag == null) {
                 timeTextColorTag = Theme.key_windowBackgroundWhiteGrayText6;
             }
-            timeText.setTextColor(Theme.getColor(timeTextColorTag));
+            timeText.setTextColor(getThemedColor(timeTextColorTag));
 
             if (currentType != AUTH_TYPE_FRAGMENT_SMS) {
-                problemText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
+                problemText.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueText4));
             }
-            wrongCode.setTextColor(Theme.getColor(Theme.key_text_RedBold));
+            wrongCode.setTextColor(getThemedColor(Theme.key_text_RedBold));
         }
 
         private void applyLottieColors(RLottieDrawable drawable) {
             if (drawable != null) {
-                drawable.setLayerColor("Bubble.**", Theme.getColor(Theme.key_chats_actionBackground));
-                drawable.setLayerColor("Phone.**", Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-                drawable.setLayerColor("Note.**", Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+                drawable.setLayerColor("Bubble.**", getThemedColor(Theme.key_chats_actionBackground));
+                drawable.setLayerColor("Phone.**", getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+                drawable.setLayerColor("Note.**", getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
             }
         }
 
@@ -5476,12 +5412,12 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
         @Override
         public void updateColors() {
-            titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            confirmTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6));
-            codeField.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            codeField.setCursorColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            codeField.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
-            cancelButton.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
+            titleView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+            confirmTextView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText6));
+            codeField.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+            codeField.setCursorColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+            codeField.setHintTextColor(getThemedColor(Theme.key_windowBackgroundWhiteHintText));
+            cancelButton.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueText4));
             outlineCodeField.updateColor();
         }
 
@@ -5783,11 +5719,11 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
         @Override
         public void updateColors() {
-            titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            confirmTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            resetAccountText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            resetAccountTime.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            resetAccountButton.setBackground(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(6), Theme.getColor(Theme.key_changephoneinfo_image2), Theme.getColor(Theme.key_chats_actionPressedBackground)));
+            titleView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+            confirmTextView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+            resetAccountText.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+            resetAccountTime.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+            resetAccountButton.setBackground(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(6), getThemedColor(Theme.key_changephoneinfo_image2), getThemedColor(Theme.key_chats_actionPressedBackground)));
         }
 
         @Override
@@ -6026,11 +5962,11 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
         @Override
         public void updateColors() {
-            titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            subtitleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6));
-            subtitleView.setLinkTextColor(Theme.getColor(Theme.key_chat_messageLinkIn));
-            emailField.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            signInWithGoogleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
+            titleView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+            subtitleView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText6));
+            subtitleView.setLinkTextColor(getThemedColor(Theme.key_chat_messageLinkIn));
+            emailField.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+            signInWithGoogleView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueText4));
             loginOrView.updateColors();
 
             emailOutlineView.invalidate();
@@ -6554,11 +6490,11 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
         @Override
         public void updateColors() {
-            titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            confirmTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6));
-            signInWithGoogleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
+            titleView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+            confirmTextView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText6));
+            signInWithGoogleView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueText4));
             loginOrView.updateColors();
-            resendCodeView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
+            resendCodeView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueText4));
             cantAccessEmailView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
             emailResetInView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6));
             wrongCodeView.setTextColor(Theme.getColor(Theme.key_text_RedBold));
@@ -7158,9 +7094,9 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
         @Override
         public void updateColors() {
-            titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            confirmTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6));
-            troubleButton.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
+            titleView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+            confirmTextView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText6));
+            troubleButton.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueText4));
 
             codeFieldContainer.invalidate();
         }
@@ -7502,16 +7438,16 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
         @Override
         public void updateColors() {
-            titleTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            confirmTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6));
+            titleTextView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+            confirmTextView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText6));
             for (EditTextBoldCursor editText : codeField) {
-                editText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-                editText.setCursorColor(Theme.getColor(Theme.key_windowBackgroundWhiteInputFieldActivated));
+                editText.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+                editText.setCursorColor(getThemedColor(Theme.key_windowBackgroundWhiteInputFieldActivated));
             }
             for (OutlineTextContainerView outlineField : outlineFields) {
                 outlineField.updateColor();
             }
-            cancelButton.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
+            cancelButton.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueText4));
             if (passwordButton != null) {
                 passwordButton.setColorFilter(Theme.getColor(isPasswordVisible ? Theme.key_windowBackgroundWhiteInputFieldActivated : Theme.key_windowBackgroundWhiteHintText));
                 passwordButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector), 1));
@@ -8051,15 +7987,15 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         @Override
         public void updateColors() {
             avatarDrawable.invalidateSelf();
-            titleTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            descriptionTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6));
-            firstNameField.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            firstNameField.setCursorColor(Theme.getColor(Theme.key_windowBackgroundWhiteInputFieldActivated));
-            lastNameField.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            lastNameField.setCursorColor(Theme.getColor(Theme.key_windowBackgroundWhiteInputFieldActivated));
-            wrongNumber.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
-            privacyView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6));
-            privacyView.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteLinkText));
+            titleTextView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+            descriptionTextView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText6));
+            firstNameField.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+            firstNameField.setCursorColor(getThemedColor(Theme.key_windowBackgroundWhiteInputFieldActivated));
+            lastNameField.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+            lastNameField.setCursorColor(getThemedColor(Theme.key_windowBackgroundWhiteInputFieldActivated));
+            wrongNumber.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueText4));
+            privacyView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText6));
+            privacyView.setLinkTextColor(getThemedColor(Theme.key_windowBackgroundWhiteLinkText));
 
             firstNameOutlineView.updateColor();
             lastNameOutlineView.updateColor();
@@ -8408,7 +8344,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 public void onAnimationEnd(Animator animation) {
                     keyboardLinearLayout.setAlpha(1);
                     startMessagingButton.setVisibility(View.VISIBLE);
-                    fragmentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+                    fragmentView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
                     floatingButton.setButtonVisible(true, false);
 
                     FrameLayout frameLayout = (FrameLayout) fragmentView;
@@ -8423,7 +8359,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                     callback.run();
                 }
             });
-            int bgColor = Theme.getColor(Theme.key_windowBackgroundWhite);
+            int bgColor = getThemedColor(Theme.key_windowBackgroundWhite);
             int initialAlpha = Color.alpha(bgColor);
             animator.addUpdateListener(animation -> {
                 float val = (float) animation.getAnimatedValue();
@@ -8462,19 +8398,19 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
     }
 
     private void updateColors() {
-        fragmentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        fragmentView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
 
-        backButtonView.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-        backButtonView.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector)));
+        backButtonView.setColorFilter(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+        backButtonView.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector)));
 
-        proxyDrawable.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText), PorterDuff.Mode.SRC_IN));
-        proxyButtonView.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector)));
+        proxyDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_windowBackgroundWhiteBlackText), PorterDuff.Mode.SRC_IN));
+        proxyButtonView.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector)));
 
-        radialProgressView.setProgressColor(Theme.getColor(Theme.key_chats_actionBackground));
+        radialProgressView.setProgressColor(getThemedColor(Theme.key_chats_actionBackground));
 
         floatingButton.updateColors();
-        floatingButtonIcon.setColor(Theme.getColor(Theme.key_chats_actionIcon));
-        floatingButtonIcon.setBackgroundColor(Theme.getColor(Theme.key_chats_actionBackground));
+        floatingButtonIcon.setColor(getThemedColor(Theme.key_chats_actionIcon));
+        floatingButtonIcon.setBackgroundColor(getThemedColor(Theme.key_chats_actionBackground));
 
         for (SlideView slideView : views) {
             slideView.updateColors();
@@ -8488,7 +8424,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
     @Override
     public ArrayList<ThemeDescription> getThemeDescriptions() {
-        return SimpleThemeDescription.createThemeDescriptions(this::updateColors, Theme.key_windowBackgroundWhiteBlackText, Theme.key_windowBackgroundWhiteGrayText6,
+        return SimpleThemeDescription.createThemeDescriptions(this::updateColors, Theme.key_windowBackgroundWhite, Theme.key_windowBackgroundWhiteBlackText, Theme.key_windowBackgroundWhiteGrayText6,
                 Theme.key_windowBackgroundWhiteHintText, Theme.key_listSelector, Theme.key_chats_actionBackground, Theme.key_chats_actionIcon,
                 Theme.key_windowBackgroundWhiteInputField, Theme.key_windowBackgroundWhiteInputFieldActivated, Theme.key_windowBackgroundWhiteValueText,
                 Theme.key_text_RedBold, Theme.key_windowBackgroundWhiteGrayText, Theme.key_checkbox, Theme.key_windowBackgroundWhiteBlueText4,
@@ -8758,7 +8694,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
     @Override
     public boolean isLightStatusBar() {
-        int color = Theme.getColor(Theme.key_windowBackgroundWhite, null, true);
+        int color = getThemedColor(Theme.key_windowBackgroundWhite);
         return ColorUtils.calculateLuminance(color) > 0.7f;
     }
 

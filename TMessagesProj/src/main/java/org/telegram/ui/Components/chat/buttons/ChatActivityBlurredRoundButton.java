@@ -9,6 +9,7 @@ import android.graphics.BlendModeColorFilter;
 import android.graphics.Canvas;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.view.Gravity;
 import android.widget.FrameLayout;
@@ -82,6 +83,19 @@ public class ChatActivityBlurredRoundButton extends FrameLayout implements Facto
         }
 
         imageView.setImageResource(resId);
+    }
+
+    public void setIcon(@Nullable Drawable drawable, int size) {
+        if (imageView == null) {
+            if (drawable == null) {
+                return;
+            }
+            imageView = new ImageView(getContext());
+            imageView.setScaleType(ImageView.ScaleType.CENTER);
+            addView(imageView, LayoutHelper.createFrame(size, size, Gravity.CENTER));
+            checkUi_IconViewVisibility();
+        }
+        imageView.setImageDrawable(drawable);
     }
 
     public void setIconPadding(int paddingTop) {
@@ -175,6 +189,26 @@ public class ChatActivityBlurredRoundButton extends FrameLayout implements Facto
         int pressedColor = Theme.multAlpha(color, .15f);
         button.setBackground(Theme.createInsetRoundRectDrawable(pressedColor, rad, dp(6)));
 
+        return button;
+    }
+
+    public static ChatActivityBlurredRoundButton create(
+        Context context,
+        BlurredBackgroundDrawableViewFactory factory,
+        BlurredBackgroundColorProvider colorProvider,
+        Theme.ResourcesProvider resourcesProvider,
+        @NonNull Drawable drawable,
+        int iconSize
+    ) {
+        final int color = Theme.getColor(Theme.key_glass_defaultIcon, resourcesProvider);
+        ChatActivityBlurredRoundButton button = new ChatActivityBlurredRoundButton(context);
+        button.resourcesProvider = resourcesProvider;
+        button.setBlurredBackgroundDrawable(factory.create(button, colorProvider));
+        button.setIcon(drawable, iconSize);
+        button.setIconColor(color);
+        int rad = dp(22);
+        int pressedColor = Theme.multAlpha(color, .15f);
+        button.setBackground(Theme.createInsetRoundRectDrawable(pressedColor, rad, dp(6)));
         return button;
     }
 

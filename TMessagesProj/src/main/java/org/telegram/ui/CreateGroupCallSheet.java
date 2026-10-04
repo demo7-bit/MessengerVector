@@ -60,7 +60,7 @@ public class CreateGroupCallSheet extends BottomSheetWithRecyclerListView {
     private final HashSet<Long> selectedParticipants = new HashSet<>();
 
     public CreateGroupCallSheet(Context context, Collection<Long> participants) {
-        super(context, null, false, false, false, new DarkThemeResourceProvider());
+        super(context, null, false, false, false, new DarkThemeResourceProvider(true));
 
         this.participants.addAll(participants);
         this.selectedParticipants.addAll(participants);

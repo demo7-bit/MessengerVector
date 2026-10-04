@@ -17,14 +17,48 @@ import java.util.Objects;
 
 public class DarkThemeResourceProvider implements Theme.ResourcesProvider {
 
+    private static final int[] VECTOR_ACCENT_FALLBACK_KEYS = {
+            Theme.key_dialogButton,
+            Theme.key_chat_recordedVoiceBackground,
+            Theme.key_chat_messageLinkOut,
+            Theme.key_progressCircle,
+            Theme.key_player_progress,
+            Theme.key_chat_editMediaButton,
+            Theme.key_chat_emojiPanelStickerPackSelectorLine,
+            Theme.key_windowBackgroundWhiteBlueHeader,
+            Theme.key_windowBackgroundWhiteBlueText,
+            Theme.key_windowBackgroundWhiteBlueIcon,
+            Theme.key_windowBackgroundWhiteBlueButton,
+            Theme.key_windowBackgroundWhiteInputFieldActivated,
+            Theme.key_windowBackgroundWhiteInputField,
+            Theme.key_undo_cancelColor,
+            Theme.key_switchTrackChecked,
+            Theme.key_dialogRoundCheckBox,
+            Theme.key_dialogRadioBackgroundChecked,
+            Theme.key_dialogTextBlue2,
+            Theme.key_groupcreate_cursor,
+            Theme.key_featuredStickers_addButton,
+            Theme.key_dialogTextLink,
+            Theme.key_chat_messageLinkIn,
+            Theme.key_radioBackgroundChecked,
+            Theme.key_checkbox,
+            Theme.key_checkboxSquareBackground
+    };
+
     protected HashSet<Integer> debugUnknownKeys = new HashSet<>();
     protected SparseIntArray sparseIntArray = new SparseIntArray();
+    private final boolean useVectorAccentFallbacks;
 
     Paint dividerPaint = new Paint();
     Paint actionPaint;
     ColorFilter animatedEmojiColorFilter;
 
     public DarkThemeResourceProvider() {
+        this(false);
+    }
+
+    public DarkThemeResourceProvider(boolean useVectorAccentFallbacks) {
+        this.useVectorAccentFallbacks = useVectorAccentFallbacks;
         sparseIntArray.put(Theme.key_chat_BlurAlpha, -1308622848);
         sparseIntArray.put(Theme.key_chat_BlurAlphaSlow, -1056964608);
 
@@ -187,12 +221,24 @@ public class DarkThemeResourceProvider implements Theme.ResourcesProvider {
         dividerPaint.setColor(getColor(Theme.key_divider));
     }
 
+    private boolean isVectorAccentFallbackKey(int key) {
+        for (int accentKey : VECTOR_ACCENT_FALLBACK_KEYS) {
+            if (accentKey == key) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public void appendColors() {
 
     }
 
     @Override
     public int getColor(int key) {
+        if (useVectorAccentFallbacks && isVectorAccentFallbackKey(key)) {
+            return Theme.getColor(key);
+        }
         int index = sparseIntArray.indexOfKey(key);
         if (index >= 0) {
             return sparseIntArray.valueAt(index);

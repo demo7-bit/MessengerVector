@@ -25,8 +25,15 @@ import org.telegram.ui.Components.SpeedIconDrawable;
 public class SpeedButtonsLayout extends LinearLayout {
 
     ActionBarMenuSubItem[] speedItems = new ActionBarMenuSubItem[5];
+    private final Theme.ResourcesProvider resourcesProvider;
+
     public SpeedButtonsLayout(Context context, Callback callback) {
+        this(context, callback, null);
+    }
+
+    public SpeedButtonsLayout(Context context, Callback callback, Theme.ResourcesProvider resourcesProvider) {
         super(context);
+        this.resourcesProvider = resourcesProvider;
         setOrientation(VERTICAL);
 
         ActionBarMenuSubItem item = ActionBarMenuItem.addItem(this, R.drawable.msg_speed_0_2, LocaleController.getString(R.string.SpeedVerySlow), false, null);
@@ -96,7 +103,8 @@ public class SpeedButtonsLayout extends LinearLayout {
                             a == 3 && Math.abs(currentVideoSpeed - 1.5f) < 0.1f ||
                             a == 4 && Math.abs(currentVideoSpeed - 2.0f) < 0.1f
             )) {
-                speedItems[a].setColors(0xff6BB6F9, 0xff6BB6F9);
+                int accentColor = Theme.getColorWithBrandFallback(Theme.key_player_progress, resourcesProvider);
+                speedItems[a].setColors(accentColor, accentColor);
             } else {
                 speedItems[a].setColors(0xfffafafa, 0xfffafafa);
             }

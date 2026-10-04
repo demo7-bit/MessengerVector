@@ -156,7 +156,7 @@ public class BubbleActivity extends BasePermissionsActivity implements INavigati
             return false;
         }
         BaseFragment chatActivity = null;
-        if (intent.getAction() != null && intent.getAction().startsWith("com.tmessages.openchat")) {
+        if (intent.getAction() != null && intent.getAction().startsWith(ApplicationLoader.getApplicationId() + ".openchat")) {
             long chatId = intent.getLongExtra("chatId", 0);
             long userId = intent.getLongExtra("userId", 0);
             Bundle args = new Bundle();

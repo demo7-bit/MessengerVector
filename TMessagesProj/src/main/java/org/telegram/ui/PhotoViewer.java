@@ -5001,7 +5001,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                         AlertDialog dialog = new AlertDialog.Builder(parentActivity, resourcesProvider)
                                 .setTitle(getString("SaveGroupMedia", R.string.SaveGroupMedia))
                                 .setMessage(getString("SaveGroupMediaMessage", R.string.SaveGroupMediaMessage))
-                                .setDialogButtonColorKey(Theme.key_voipgroup_listeningText)
+                                .setDialogButtonColorKey(Theme.key_dialogButton)
                                 .setNegativeButton(((currentMessageObject == null || !currentMessageObject.isVideo() || currentMessageObject.isLivePhoto()) ? getString("ThisPhoto", R.string.ThisPhoto) : getString("ThisMedia", R.string.ThisMedia)), (di, a) -> {
                                     if (currentMessageObject == null) {
                                         return;
@@ -5232,7 +5232,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                         AlertDialog dialog = new AlertDialog.Builder(parentActivity, resourcesProvider)
                                 .setTitle(getString("ForwardGroupMedia", R.string.ForwardGroupMedia))
                                 .setMessage(getString("ForwardGroupMediaMessage", R.string.ForwardGroupMediaMessage))
-                                .setDialogButtonColorKey(Theme.key_voipgroup_listeningText)
+                                .setDialogButtonColorKey(Theme.key_dialogButton)
                                 .setNegativeButton((photos ? getString("ThisPhoto", R.string.ThisPhoto) : getString("ThisMedia", R.string.ThisMedia)), (di, a) -> {
                                     ArrayList<MessageObject> singleMessage = new ArrayList<>(1);
                                     singleMessage.add(currentMessageObject);
@@ -5739,8 +5739,9 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                     if (videoPlayer != null) {
                         videoPlayer.setLooping(playerLooping);
                     }
-                    loopItem.setEnabledByColor(playerLooping, 0xFFFFFFFF, 0xFF73B4EC);
-                    loopItem.setSelectorColor(playerLooping ? 0x0F73B4EC : 0x0fffffff);
+                    int accentColor = getThemedColor(Theme.key_player_progress);
+                    loopItem.setEnabledByColor(playerLooping, 0xFFFFFFFF, accentColor);
+                    loopItem.setSelectorColor(playerLooping ? ColorUtils.setAlphaComponent(accentColor, 0x0f) : 0x0fffffff);
                 } else if (id == gallery_menu_report) {
                     TLRPC.Photo photo = null;
                     if (currentFileLocation != null && currentFileLocation.photo != null) {
@@ -5804,7 +5805,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         videoItem.getPopupLayout().addView(speedItem, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 44));
         speedGap = videoItem.addColoredGap();
         speedGap.setColor(0xff181818);
-        videoItem.getPopupLayout().addView(chooseSpeedLayout = new SpeedButtonsLayout(activityContext, this::chooseSpeed));
+        videoItem.getPopupLayout().addView(chooseSpeedLayout = new SpeedButtonsLayout(activityContext, this::chooseSpeed, resourcesProvider));
         videoQualityLayout = new LinearLayout(activityContext);
         videoQualityLayout.setOrientation(LinearLayout.VERTICAL);
         videoItem.getPopupLayout().addView(videoQualityLayout);
@@ -5814,8 +5815,9 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             @Override
             public void stateUpdated(boolean connected) {
                 if (castItem != null) {
-                    castItem.setEnabledByColor(connected, 0xFFFFFFFF, 0xFF73B4EC);
-                    castItem.setSelectorColor(connected ? 0x0F73B4EC : 0x0fffffff);
+                    int accentColor = getThemedColor(Theme.key_player_progress);
+                    castItem.setEnabledByColor(connected, 0xFFFFFFFF, accentColor);
+                    castItem.setSelectorColor(connected ? ColorUtils.setAlphaComponent(accentColor, 0x0f) : 0x0fffffff);
                 }
                 if (videoPlayer != null) {
                     videoPlayer.setMute(CastSync.isActive() || muteVideo);
@@ -5835,7 +5837,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         castItemButton.setVisibility(View.INVISIBLE);
         if (castAvailable) {
             castItem = videoItem.addSubItem(gallery_menu_chromecast, R.drawable.menu_video_chromecast, getString(R.string.VideoPlayerChromecast));
-            castItem.setEnabledByColor(false, 0xFFFFFFFF, 0xFF73B4EC);
+            castItem.setEnabledByColor(false, 0xFFFFFFFF, getThemedColor(Theme.key_player_progress));
             castItem.setSelectorColor(0x0fffffff);
             castItem.addView(castItemButton, 0, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
         }
@@ -8022,7 +8024,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                     builder.setPositiveButton(confirmMessage, (dialog, which) -> {
                         sendPressed(notify, scheduleDate, scheduleRepeatPeriod, replace, forceDocument, true);
                     });
-                    builder.setDialogButtonColorKey(Theme.key_voipgroup_listeningText);
+                    builder.setDialogButtonColorKey(Theme.key_dialogButton);
                     AlertDialog alertDialog = builder.create();
                     alertDialog.setBlurParams(0.8f, false, true);
                     alertDialog.setBackgroundColor(ColorUtils.setAlphaComponent(0xff141414, (int) (0.8f * 255)));
@@ -10091,6 +10093,19 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         if (masksAlert != null) {
             masksAlert.updateColors(true);
         }
+        int playerAccentColor = getThemedColor(Theme.key_player_progress);
+        if (loopItem != null) {
+            loopItem.setEnabledByColor(playerLooping, 0xFFFFFFFF, playerAccentColor);
+            loopItem.setSelectorColor(playerLooping ? ColorUtils.setAlphaComponent(playerAccentColor, 0x0f) : 0x0fffffff);
+        }
+        if (castItem != null) {
+            boolean connected = CastSync.isActive();
+            castItem.setEnabledByColor(connected, 0xFFFFFFFF, playerAccentColor);
+            castItem.setSelectorColor(connected ? ColorUtils.setAlphaComponent(playerAccentColor, 0x0f) : 0x0fffffff);
+        }
+        if (chooseSpeedLayout != null) {
+            chooseSpeedLayout.update(currentVideoSpeed, true);
+        }
     }
 
     public void injectVideoPlayer(VideoPlayer player) {
@@ -10732,8 +10747,9 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         }
         videoPlayerControlFrameLayout.setSeekBarTransitionEnabled(playerLooping);
         videoPlayer.setLooping(playerLooping);
-        loopItem.setEnabledByColor(playerLooping, 0xFFFFFFFF, 0xFF73B4EC);
-        loopItem.setSelectorColor(playerLooping ? 0x0F73B4EC : 0x0fffffff);
+        int accentColor = getThemedColor(Theme.key_player_progress);
+        loopItem.setEnabledByColor(playerLooping, 0xFFFFFFFF, accentColor);
+        loopItem.setSelectorColor(playerLooping ? ColorUtils.setAlphaComponent(accentColor, 0x0f) : 0x0fffffff);
 
         if (currentMessageObject != null && currentMessageObject.forceSeekTo >= 0) {
             seekToProgressPending = currentMessageObject.forceSeekTo;
@@ -21166,7 +21182,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             for (int a = 0; a < compressionsCount; a++) {
                 int cx = sideSide + (lineSize + gapSize * 2 + circleSize) * a + circleSize / 2;
                 if (a <= selectedCompression) {
-                    paint.setColor(0xff53aeef);
+                    paint.setColor(getThemedColor(Theme.key_chat_editMediaButton));
                 } else {
                     paint.setColor(0x66ffffff);
                 }

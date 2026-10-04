@@ -4740,8 +4740,6 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         contentView.addView(floatingButtonStories, FragmentFloatingButton.createSubButtonLayoutParams());
 
         floatingButton3 = new FragmentFloatingButton(context, resourceProvider);
-        floatingButton3.imageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        floatingButton3.imageView.setPadding(dp(4), dp(4), dp(4), dp(4));
         contentView.addView(floatingButton3, FragmentFloatingButton.createDefaultLayoutParams());
         floatingButton3.setOnClickListener(v -> {
             if (parentLayout != null && parentLayout.isInPreviewMode()) {
@@ -4762,9 +4760,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     AccountFrozenAlert.show(currentAccount);
                     return;
                 }
-                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("tg://resolve?domain=VekkiAI_Bot"));
-                intent.setPackage(context.getPackageName());
-                context.startActivity(intent);
+                openWriteContacts();
             }
         });
 
@@ -8894,7 +8890,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             floatingButton3.setImageResource(R.drawable.floating_check);
             floatingButton3.setContentDescription(LocaleController.getString(R.string.Done));
         } else {
-            floatingButton3.setImageResource(R.drawable.vekki);
+            floatingButton3.setImageResource(R.drawable.filled_fab_compose_32);
             floatingButton3.setContentDescription(LocaleController.getString(R.string.NewMessageTitle));
         }
     }

@@ -2443,13 +2443,13 @@ public class EmojiBottomSheet extends BottomSheet implements NotificationCenter.
             this.resourcesProvider = resourcesProvider;
 
             box = new FrameLayout(context);
-            box.setBackground(Theme.createRoundRectDrawable(dp(18), Theme.getColor(Theme.key_chat_emojiSearchBackground, resourcesProvider)));
+            box.setBackground(Theme.createRoundRectDrawable(dp(Theme.MODERN_FIELD_RADIUS_DP), Theme.getColor(Theme.key_chat_emojiSearchBackground, resourcesProvider)));
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 box.setClipToOutline(true);
                 box.setOutlineProvider(new ViewOutlineProvider() {
                     @Override
                     public void getOutline(View view, Outline outline) {
-                        outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), (int) dp(18));
+                        outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), (int) dp(Theme.MODERN_FIELD_RADIUS_DP));
                     }
                 });
             }

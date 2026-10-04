@@ -5,11 +5,13 @@ import static org.telegram.messenger.AndroidUtilities.lerp;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.drawable.Drawable;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
 
 import androidx.annotation.DrawableRes;
+import androidx.annotation.NonNull;
 
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.CounterView;
@@ -35,6 +37,12 @@ public class ChatActivityBlurredRoundPageDownButton extends FrameLayout {
         this.buttonView = button;
         addView(button, LayoutHelper.createFrame(size, size, Gravity.BOTTOM));
         button.setIconPadding(dp(2));
+    }
+
+    public void setIconPadding(int paddingTop) {
+        if (buttonView != null) {
+            buttonView.setIconPadding(paddingTop);
+        }
     }
 
 
@@ -98,6 +106,20 @@ public class ChatActivityBlurredRoundPageDownButton extends FrameLayout {
         button.addButtonView(ChatActivityBlurredRoundButton.create(context, factory, colorProvider, resourcesProvider, res, iconSize), size);
         ScaleStateListAnimator.apply(button, .13f, 2f);
 
+        return button;
+    }
+
+    public static ChatActivityBlurredRoundPageDownButton create(
+        Context context,
+        int size, int iconSize,
+        Theme.ResourcesProvider resourcesProvider,
+        BlurredBackgroundDrawableViewFactory factory,
+        BlurredBackgroundColorProvider colorProvider,
+        @NonNull Drawable drawable
+    ) {
+        ChatActivityBlurredRoundPageDownButton button = new ChatActivityBlurredRoundPageDownButton(context, resourcesProvider);
+        button.addButtonView(ChatActivityBlurredRoundButton.create(context, factory, colorProvider, resourcesProvider, drawable, iconSize), size);
+        ScaleStateListAnimator.apply(button, .13f, 2f);
         return button;
     }
 }

@@ -137,7 +137,7 @@ public class PhotoCropView extends FrameLayout {
 
         thumbImageView = new ImageReceiver(this);
 
-        wheelView = new CropRotationWheel(context);
+        wheelView = new CropRotationWheel(context, resourcesProvider);
         wheelView.setListener(new CropRotationWheel.RotationWheelListener() {
             @Override
             public void onStart() {

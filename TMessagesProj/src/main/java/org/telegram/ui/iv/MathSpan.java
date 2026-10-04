@@ -36,15 +36,49 @@ public class MathSpan extends ReplacementSpan {
 
     /** Builds a span for {@code source} rendered at {@code textSizePx}, or null if it can't be rendered. */
     public static MathSpan create(String source, int color, float textSizePx) {
+        return createInternal(source, color, textSizePx, 0, true);
+    }
+
+    /**
+     * Bounded, non-logging variant for displaying bot-provided formulas in chat bubbles. Malformed
+     * or unexpectedly large input returns null so the caller can leave the original source visible.
+     */
+    public static MathSpan createForMessage(String source, int color, float textSizePx, int maxWidthPx) {
+        return createInternal(source, color, textSizePx, Math.max(1, maxWidthPx), false);
+    }
+
+    private static MathSpan createInternal(String source, int color, float textSizePx,
+                                           int maxWidthPx, boolean logErrors) {
         if (source == null || source.isEmpty()) return null;
         try {
-            final JLatexMathDrawable drawable =
-                JLatexMathDrawable.builder(source)
-                    .textSize(textSizePx)
-                    .build();
-            final int w = drawable.getIntrinsicWidth();
-            final int h = drawable.getIntrinsicHeight();
-            if (w <= 0 || h <= 0) return null;
+            float renderTextSize = textSizePx;
+            JLatexMathDrawable drawable = null;
+            int w = 0;
+            int h = 0;
+            for (int attempt = 0; attempt < 3; attempt++) {
+                drawable = JLatexMathDrawable.builder(source)
+                        .textSize(renderTextSize)
+                        .build();
+                w = drawable.getIntrinsicWidth();
+                h = drawable.getIntrinsicHeight();
+                if (w <= 0 || h <= 0) return null;
+                if (maxWidthPx <= 0 || w <= maxWidthPx) {
+                    break;
+                }
+                float nextTextSize = renderTextSize * maxWidthPx / (float) w;
+                if (nextTextSize < textSizePx * .45f || nextTextSize >= renderTextSize - .1f) {
+                    return null;
+                }
+                renderTextSize = nextTextSize;
+                drawable = null;
+            }
+            if (drawable == null || maxWidthPx > 0 && w > maxWidthPx) return null;
+            if (maxWidthPx > 0) {
+                int maxHeightPx = Math.max(64, (int) Math.ceil(textSizePx * 12f));
+                if (h > maxHeightPx || (long) w * h > (long) maxWidthPx * maxHeightPx) {
+                    return null;
+                }
+            }
             final Bitmap bm = Bitmap.createBitmap(w, h, Bitmap.Config.ALPHA_8);
             drawable.setBounds(0, 0, w, h);
             drawable.draw(new Canvas(bm));
@@ -52,11 +86,15 @@ public class MathSpan extends ReplacementSpan {
             try {
                 depth = drawable.icon().getIconDepth();
             } catch (Throwable t) {
-                FileLog.e(t);
+                if (logErrors) {
+                    FileLog.e(t);
+                }
             }
             return new MathSpan(source, bm, w, h, color, depth);
-        } catch (Exception e) {
-            FileLog.e(e);
+        } catch (Throwable e) {
+            if (logErrors) {
+                FileLog.e(e);
+            }
             return null;
         }
     }

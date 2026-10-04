@@ -108,7 +108,7 @@ public class ContactsWidgetProvider extends AppWidgetProvider {
         rv.setEmptyView(R.id.list_view, R.id.empty_view);
 
         Intent intent = new Intent(ApplicationLoader.applicationContext, LaunchActivity.class);
-        intent.setAction("com.tmessages.openchat" + Math.random() + Integer.MAX_VALUE);
+        intent.setAction(ApplicationLoader.getApplicationId() + ".openchat" + Math.random() + Integer.MAX_VALUE);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         intent.addCategory(Intent.CATEGORY_LAUNCHER);
         PendingIntent contentIntent = PendingIntent.getActivity(ApplicationLoader.applicationContext, 0, intent, PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);

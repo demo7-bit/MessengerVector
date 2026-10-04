@@ -129,7 +129,7 @@ public class MediaDataController extends BaseController {
             SPOILER_PATTERN = Pattern.compile("\\|\\|(.+?)\\|\\|"),
             STRIKE_PATTERN = Pattern.compile("~~(.+?)~~");
 
-    public static String SHORTCUT_CATEGORY = "org.telegram.messenger.SHORTCUT_SHARE";
+    public static String SHORTCUT_CATEGORY = "app.vector.messenger.SHORTCUT_SHARE";
 
     private static volatile MediaDataController[] Instance = new MediaDataController[UserConfig.MAX_ACCOUNT_COUNT];
     private static final Object[] lockObjects = new Object[UserConfig.MAX_ACCOUNT_COUNT];
@@ -5107,7 +5107,7 @@ public class MediaDataController extends BaseController {
                     }
 
                     shortcutIntent.putExtra("currentAccount", currentAccount);
-                    shortcutIntent.setAction("com.tmessages.openchat" + peerId);
+                    shortcutIntent.setAction(ApplicationLoader.getApplicationId() + ".openchat" + peerId);
                     shortcutIntent.putExtra("dialogId", peerId);
                     shortcutIntent.putExtra("hash", SharedConfig.directShareHash);
                     shortcutIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -5652,7 +5652,7 @@ public class MediaDataController extends BaseController {
             return null;
         }
         shortcutIntent.putExtra("currentAccount", currentAccount);
-        shortcutIntent.setAction("com.tmessages.openchat" + dialogId);
+        shortcutIntent.setAction(ApplicationLoader.getApplicationId() + ".openchat" + dialogId);
         shortcutIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         return shortcutIntent;
     }

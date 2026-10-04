@@ -171,7 +171,7 @@ public class ApplicationLoader extends Application {
         } catch (Exception e) {
             FileLog.e(e);
         }
-        return new File("/data/data/org.telegram.messenger/files");
+        return new File("/data/data/" + getApplicationId() + "/files");
     }
 
     public static File getFilesDirFixed(String child) {
@@ -192,6 +192,7 @@ public class ApplicationLoader extends Application {
             return;
         }
         applicationInited = true;
+        PushDiagnostics.log("application_post_init", "process=" + android.os.Process.myPid());
         NativeLoader.initNativeLibs(ApplicationLoader.applicationContext);
 
         try {
@@ -259,6 +260,7 @@ public class ApplicationLoader extends Application {
                 SendMessagesHelper.getInstance(a).checkUnsentMessages();
             }
         }
+        updatePushConnectionEnabledForAllAccounts();
 
         ApplicationLoader app = (ApplicationLoader) ApplicationLoader.applicationContext;
         app.initPushServices();
@@ -288,6 +290,8 @@ public class ApplicationLoader extends Application {
         }
 
         super.onCreate();
+        PushDiagnostics.logFirebaseConfiguration(applicationContext);
+        PushDiagnostics.log("application_create", "process=" + android.os.Process.myPid());
 
         if (BuildVars.LOGS_ENABLED) {
             FileLog.d("app start time = " + (startTime = SystemClock.elapsedRealtime()));
@@ -348,21 +352,42 @@ public class ApplicationLoader extends Application {
     }
 
     public static void startPushService() {
-        SharedPreferences preferences = MessagesController.getGlobalNotificationsSettings();
-        boolean enabled;
-        if (preferences.contains("pushService")) {
-            enabled = preferences.getBoolean("pushService", true);
-        } else {
-            enabled = MessagesController.getMainSettings(UserConfig.selectedAccount).getBoolean("keepAliveService", false);
-        }
+        boolean enabled = isPushServiceEnabled();
         if (enabled) {
             try {
+                PushDiagnostics.log("mtproto_service_start_requested", "sdk=" + Build.VERSION.SDK_INT);
                 applicationContext.startService(new Intent(applicationContext, NotificationsService.class));
-            } catch (Throwable ignore) {
-
+                PushDiagnostics.log("mtproto_service_start_accepted", "sdk=" + Build.VERSION.SDK_INT);
+            } catch (Throwable e) {
+                PushDiagnostics.error("mtproto_service_start_rejected",
+                        "sdk=" + Build.VERSION.SDK_INT + "; native push connection remains enabled while the process is alive", e);
+                FileLog.e(e);
+                updatePushConnectionEnabledForAllAccounts();
             }
         } else {
+            PushDiagnostics.log("mtproto_service_stop_requested", "disabled_by_setting=true");
             applicationContext.stopService(new Intent(applicationContext, NotificationsService.class));
+        }
+    }
+
+    public static boolean isPushServiceEnabled() {
+        SharedPreferences preferences = MessagesController.getGlobalNotificationsSettings();
+        if (preferences.contains("pushService")) {
+            return preferences.getBoolean("pushService", true);
+        }
+        return true;
+    }
+
+    public static void updatePushConnectionEnabledForAllAccounts() {
+        SharedPreferences globalPreferences = MessagesController.getGlobalNotificationsSettings();
+        boolean hasExplicitSetting = globalPreferences.contains("pushConnection");
+        for (int account = 0; account < UserConfig.MAX_ACCOUNT_COUNT; account++) {
+            if (UserConfig.getInstance(account).isClientActivated()) {
+                boolean enabled = !hasExplicitSetting || globalPreferences.getBoolean("pushConnection", true);
+                ConnectionsManager connectionsManager = ConnectionsManager.getInstance(account);
+                connectionsManager.setPushConnectionEnabled(enabled);
+                PushDiagnostics.log("mtproto_push_connection", "account=" + account + " enabled=" + enabled);
+            }
         }
     }
 
@@ -381,13 +406,19 @@ public class ApplicationLoader extends Application {
 
     private void initPushServices() {
         AndroidUtilities.runOnUIThread(() -> {
-            if (getPushProvider().hasServices()) {
+            boolean servicesAvailable = getPushProvider().hasServices();
+            PushDiagnostics.log("push_provider_init",
+                    "provider=" + getPushProvider().getLogTitle() + " available=" + servicesAvailable);
+            if (servicesAvailable) {
                 getPushProvider().onRequestPushToken();
             } else {
                 if (BuildVars.LOGS_ENABLED) {
                     FileLog.d("No valid " + getPushProvider().getLogTitle() + " APK found.");
                 }
                 SharedConfig.pushStringStatus = "__NO_GOOGLE_PLAY_SERVICES__";
+                PushDiagnostics.error("push_provider_unavailable",
+                        "provider=" + getPushProvider().getLogTitle() + "; using the MTProto connection while Android keeps the process alive", null);
+                updatePushConnectionEnabledForAllAccounts();
                 PushListenerController.sendRegistrationToServer(getPushProvider().getPushType(), null);
             }
         }, 1000);

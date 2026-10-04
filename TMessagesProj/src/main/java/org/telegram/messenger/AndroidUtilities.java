@@ -314,6 +314,7 @@ public class AndroidUtilities {
     private static Boolean isTablet = null, wasTablet = null, isSmallScreen = null;
     private static int adjustOwnerClassGuid = 0;
     private static int altFocusableClassGuid = 0;
+    private static volatile boolean passcodeImeSuppressed;
 
     public static final RectF rectTmp = new RectF();
     public static final Rect rectTmp2 = new Rect();
@@ -2493,6 +2494,11 @@ public class AndroidUtilities {
     }
 
     public static boolean showKeyboard(View view) {
+        // A passcode window must never hand an old or delayed editor request back to the IME.
+        // Report the request as handled so callers do not retry by clearing/restoring focus.
+        if (passcodeImeSuppressed) {
+            return true;
+        }
         if (view == null) {
             return false;
         }
@@ -2503,6 +2509,14 @@ public class AndroidUtilities {
             FileLog.e(e);
         }
         return false;
+    }
+
+    public static void setPasscodeImeSuppressed(boolean suppressed) {
+        passcodeImeSuppressed = suppressed;
+    }
+
+    public static boolean isPasscodeImeSuppressed() {
+        return passcodeImeSuppressed;
     }
 
     public static String[] getCurrentKeyboardLanguage() {

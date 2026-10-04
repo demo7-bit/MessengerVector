@@ -182,6 +182,7 @@ import org.telegram.ui.Components.BatteryDrawable;
 import org.telegram.ui.Components.BlockingUpdateView;
 import org.telegram.ui.Components.Bulletin;
 import org.telegram.ui.Components.BulletinFactory;
+import org.telegram.ui.Components.ChatActivityEnterView;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.Easings;
 import org.telegram.ui.Components.EmbedBottomSheet;
@@ -315,6 +316,12 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     public DrawerLayoutContainer drawerLayoutContainer;
     private PasscodeViewDialog passcodeDialog;
     private List<PasscodeView> overlayPasscodeViews = new ArrayList<>();
+    private boolean passcodeUnderlyingUiBlocked;
+    private int passcodePreviousDescendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS;
+    private boolean passcodeWindowImeSuppressed;
+    private boolean passcodeWindowHadAltFocusableIm;
+    private boolean passcodeWindowHadNotFocusable;
+    private int passcodePreviousSoftInputMode;
     private TermsOfServiceView termsOfServiceView;
     private BlockingUpdateView blockingUpdateView;
     public final ArrayList<Dialog> visibleDialogs = new ArrayList<>();
@@ -383,6 +390,34 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     private WindowAnimatedInsetsProvider rootAnimatedInsetsListener;
 
     public static LaunchActivity instance;
+    private static final String EXTRA_INTERNAL_THEME_RESTART = "vector_internal_theme_restart";
+    private static boolean themeRestartScheduled;
+
+    public static void restartAfterThemeColorModeChange() {
+        LaunchActivity activity = instance;
+        if (activity == null || activity.isFinishing() || themeRestartScheduled) {
+            return;
+        }
+        themeRestartScheduled = true;
+        AndroidUtilities.runOnUIThread(() -> {
+            LaunchActivity currentActivity = instance;
+            if (currentActivity == null || currentActivity.isFinishing()) {
+                themeRestartScheduled = false;
+                return;
+            }
+            Intent intent = new Intent(currentActivity, LaunchActivity.class);
+            intent.setAction(Intent.ACTION_MAIN);
+            intent.putExtra(EXTRA_INTERNAL_THEME_RESTART, true);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            try {
+                currentActivity.startActivity(intent);
+                currentActivity.overridePendingTransition(R.anim.alpha_in, R.anim.alpha_out);
+            } catch (Throwable e) {
+                themeRestartScheduled = false;
+                FileLog.e(e);
+            }
+        }, 150);
+    }
 
     public boolean voipLaunchedInBackground;
 
@@ -397,6 +432,10 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     protected void onCreate(Bundle savedInstanceState) {
         isActive = true;
         activeInstanceCount++;
+        if (getIntent() != null && getIntent().getBooleanExtra(EXTRA_INTERNAL_THEME_RESTART, false)) {
+            themeRestartScheduled = false;
+            getIntent().removeExtra(EXTRA_INTERNAL_THEME_RESTART);
+        }
         if (BuildVars.DEBUG_VERSION) {
             StrictMode.setVmPolicy(new StrictMode.VmPolicy.Builder(StrictMode.getVmPolicy())
                 .detectLeakedClosableObjects()
@@ -1078,7 +1117,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                 drawerLayoutContainer.addView(actionBarLayout.getView(), new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             }
         }
-        FloatingDebugController.setActive(this, SharedConfig.isFloatingDebugActive, false);
+        FloatingDebugController.setActive(this, BuildVars.DEBUG_PRIVATE_VERSION && SharedConfig.isFloatingDebugActive, false);
     }
 
     public void addOnUserLeaveHintListener(Runnable callback) {
@@ -1425,6 +1464,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         if (drawerLayoutContainer == null || isFinishing()) {
             return;
         }
+        AndroidUtilities.setPasscodeImeSuppressed(true);
         if (passcodeDialog == null) {
             passcodeDialog = new PasscodeViewDialog(this);
         }
@@ -1433,6 +1473,8 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
             selectAnimatedEmojiDialog = null;
         }
         SharedConfig.appLocked = true;
+        SharedConfig.isWaitingForPasscodeEnter = true;
+        blockUnderlyingUiForPasscode();
         if (SecretMediaViewer.hasInstance() && SecretMediaViewer.getInstance().isVisible()) {
             SecretMediaViewer.getInstance().closePhoto(false, false);
         } else if (PhotoViewer.hasInstance() && PhotoViewer.getInstance().isVisible()) {
@@ -1446,6 +1488,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
             MediaController.getInstance().cleanupPlayer(true, true);
         }
         passcodeDialog.show();
+        passcodeDialog.enforceImeSuppression();
         passcodeDialog.passcodeView.onShow(overlayPasscodeViews.isEmpty() && fingerprint, animated, x, y, () -> {
             actionBarLayout.getView().setVisibility(View.INVISIBLE);
             if (AndroidUtilities.isTablet()) {
@@ -1464,7 +1507,6 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
             PasscodeView overlay = overlayPasscodeViews.get(i);
             overlay.onShow(fingerprint && i == overlayPasscodeViews.size() - 1, animated, x, y, null, null);
         }
-        SharedConfig.isWaitingForPasscodeEnter = true;
         PasscodeView.PasscodeViewDelegate delegate = view -> {
             SharedConfig.isWaitingForPasscodeEnter = false;
             if (passcodeSaveIntent != null) {
@@ -1498,6 +1540,111 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         } catch (Exception e) {
             FileLog.e(e);
         }
+    }
+
+    private void blockUnderlyingUiForPasscode() {
+        // Install the process-wide request barrier before touching focus. A delayed callback from
+        // any editor must see this state even while the passcode dialog is still being attached.
+        AndroidUtilities.setPasscodeImeSuppressed(true);
+        View focused = getCurrentFocus();
+        if (focused != null) {
+            AndroidUtilities.hideKeyboard(focused);
+            focused.clearFocus();
+        }
+        suppressChatInputForPasscode(actionBarLayout);
+        suppressChatInputForPasscode(rightActionBarLayout);
+        suppressChatInputForPasscode(layersActionBarLayout);
+        setPasscodeWindowImeSuppressed(true);
+
+        if (passcodeUnderlyingUiBlocked || drawerLayoutContainer == null) {
+            return;
+        }
+        passcodeUnderlyingUiBlocked = true;
+
+        passcodePreviousDescendantFocusability = drawerLayoutContainer.getDescendantFocusability();
+        drawerLayoutContainer.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+
+        // Dialogs and popup-backed fragment UI belong to the unlocked interface and must not be
+        // able to regain focus above the passcode window while the app is locked.
+        actionBarLayout.dismissDialogs();
+        if (rightActionBarLayout != null) {
+            rightActionBarLayout.dismissDialogs();
+        }
+        if (layersActionBarLayout != null) {
+            layersActionBarLayout.dismissDialogs();
+        }
+        for (Dialog dialog : new ArrayList<>(visibleDialogs)) {
+            if (dialog != null && dialog != passcodeDialog && dialog.isShowing()) {
+                dialog.dismiss();
+            }
+        }
+        visibleDialogs.removeIf(dialog -> dialog != passcodeDialog);
+        hideVisibleActionMode();
+    }
+
+    private void suppressChatInputForPasscode(ActionBarLayout layout) {
+        if (layout == null) {
+            return;
+        }
+        for (BaseFragment fragment : new ArrayList<>(layout.getFragmentStack())) {
+            if (fragment instanceof ChatActivity) {
+                ChatActivityEnterView enterView = ((ChatActivity) fragment).getChatActivityEnterView();
+                if (enterView != null) {
+                    enterView.suppressKeyboardForPasscode();
+                }
+            }
+        }
+    }
+
+    private void setPasscodeWindowImeSuppressed(boolean suppressed) {
+        Window window = getWindow();
+        if (window == null) {
+            return;
+        }
+        if (suppressed) {
+            if (!passcodeWindowImeSuppressed) {
+                WindowManager.LayoutParams attributes = window.getAttributes();
+                passcodeWindowHadAltFocusableIm = (attributes.flags & WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM) != 0;
+                passcodeWindowHadNotFocusable = (attributes.flags & WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE) != 0;
+                passcodePreviousSoftInputMode = attributes.softInputMode;
+                passcodeWindowImeSuppressed = true;
+            }
+            WindowCompat.getInsetsController(window, window.getDecorView()).hide(WindowInsetsCompat.Type.ime());
+            // The visible passcode lives in its own focusable dialog. The activity below it must
+            // not remain an IME target: otherwise Android can restore a DecorView fallback input
+            // connection even though the passcode EditText itself is not a text editor.
+            window.addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM |
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE);
+            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN |
+                    WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
+        } else if (passcodeWindowImeSuppressed) {
+            if (!passcodeWindowHadAltFocusableIm) {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM);
+            }
+            if (!passcodeWindowHadNotFocusable) {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE);
+            }
+            window.setSoftInputMode(passcodePreviousSoftInputMode);
+            passcodeWindowImeSuppressed = false;
+        }
+    }
+
+    private void unblockUnderlyingUiAfterPasscode() {
+        if (!passcodeUnderlyingUiBlocked || drawerLayoutContainer == null) {
+            return;
+        }
+        passcodeUnderlyingUiBlocked = false;
+        drawerLayoutContainer.setDescendantFocusability(passcodePreviousDescendantFocusability);
+    }
+
+    public void onPasscodeViewHidden() {
+        if (SharedConfig.appLocked || SharedConfig.isWaitingForPasscodeEnter) {
+            return;
+        }
+        unblockUnderlyingUiAfterPasscode();
+        setPasscodeWindowImeSuppressed(false);
+        // Clear last, after the activity window and descendant focus policy have been restored.
+        AndroidUtilities.setPasscodeImeSuppressed(false);
     }
 
     public boolean allowShowFingerprintDialog(PasscodeView passcodeView) {
@@ -2619,11 +2766,11 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                                             open_settings = 14;
                                         } else if (url.contains("privacy")) {
                                             open_settings = 12;
-                                        } else if (url.contains("?enablelogs")) {
+                                        } else if (BuildVars.DEBUG_PRIVATE_VERSION && url.contains("?enablelogs")) {
                                             open_settings = 7;
-                                        } else if (url.contains("?sendlogs")) {
+                                        } else if (BuildVars.DEBUG_PRIVATE_VERSION && url.contains("?sendlogs")) {
                                             open_settings = 8;
-                                        } else if (url.contains("?disablelogs")) {
+                                        } else if (BuildVars.DEBUG_PRIVATE_VERSION && url.contains("?disablelogs")) {
                                             open_settings = 9;
                                         } else if (url.contains("premium_sms")) {
                                             open_settings = 13;
@@ -2861,9 +3008,9 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                                             NotificationCenter.getInstance(intentAccount[0]).postNotificationName(NotificationCenter.closeChats);
                                             push_user_id = userId;
                                             String mimeType = cursor.getString(cursor.getColumnIndex(ContactsContract.Data.MIMETYPE));
-                                            if (TextUtils.equals(mimeType, "vnd.android.cursor.item/vnd.org.telegram.messenger.android.call")) {
+                                            if (TextUtils.equals(mimeType, "vnd.android.cursor.item/vnd.app.vector.messenger.android.call")) {
                                                 audioCallUser = true;
-                                            } else if (TextUtils.equals(mimeType, "vnd.android.cursor.item/vnd.org.telegram.messenger.android.call.video")) {
+                                            } else if (TextUtils.equals(mimeType, "vnd.android.cursor.item/vnd.app.vector.messenger.android.call.video")) {
                                                 videoCallUser = true;
                                             }
                                         }
@@ -2874,11 +3021,11 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                             }
                         }
                     }
-                } else if (intent.getAction().equals("org.telegram.messenger.OPEN_ACCOUNT")) {
+                } else if (intent.getAction().equals("app.vector.messenger.OPEN_ACCOUNT")) {
                     open_settings = 1;
                 } else if (intent.getAction().equals("new_dialog")) {
                     open_new_dialog = 1;
-                } else if (intent.getAction().startsWith("com.tmessages.openchat")) {
+                } else if (intent.getAction().startsWith(ApplicationLoader.getApplicationId() + ".openchat")) {
 //                    Integer chatIdInt = intent.getIntExtra("chatId", 0);
                     long chatId = intent.getLongExtra("chatId", 0);
 //                    Integer userIdInt = intent.getIntExtra("userId", 0);
@@ -2951,9 +3098,9 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                     if (botId != 0) {
                         openBot = true;
                     }
-                } else if (intent.getAction().equals("com.tmessages.openplayer")) {
+                } else if (intent.getAction().equals(ApplicationLoader.getApplicationId() + ".openplayer")) {
                     showPlayer = true;
-                } else if (intent.getAction().equals("org.tmessages.openlocations")) {
+                } else if (intent.getAction().equals(ApplicationLoader.getApplicationId() + ".openlocations")) {
                     showLocations = true;
                 } else if (action.equals("voip_chat")) {
                     showGroupVoip = true;
@@ -6784,6 +6931,17 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     @Override
     protected void onStart() {
         super.onStart();
+        if (SharedConfig.passcodeHash.length() != 0 &&
+                (SharedConfig.appLocked || SharedConfig.isWaitingForPasscodeEnter || AndroidUtilities.needShowPasscode(true))) {
+            // onStart runs before the activity can regain window focus. Install the IME/focus
+            // barrier here as well, so an editor connection saved by the chat cannot be restored
+            // in the short interval before onPasscodeResume() creates/shows the passcode window.
+            blockUnderlyingUiForPasscode();
+        } else if (!SharedConfig.appLocked && !SharedConfig.isWaitingForPasscodeEnter) {
+            // Do not let a destroyed/recreated activity retain a stale process-wide barrier after
+            // an unlock animation that could not deliver its final onHidden callback.
+            AndroidUtilities.setPasscodeImeSuppressed(false);
+        }
         isStarted = true;
         pipActivityHandler.onStart();
         Browser.bindCustomTabsService(this);
@@ -6855,7 +7013,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         activeInstanceCount--;
         unregisterReceiver(batteryReceiver);
 
-        if (activeInstanceCount == 0) {
+        if (activeInstanceCount == 0 && !themeRestartScheduled) {
             onDestroyStaticResources();
         }
 
@@ -6957,6 +7115,17 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     }
 
     View feedbackView;
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus && passcodeUnderlyingUiBlocked) {
+            blockUnderlyingUiForPasscode();
+            if (passcodeDialog != null && passcodeDialog.isShowing()) {
+                passcodeDialog.enforceImeSuppression();
+            }
+        }
+    }
 
     @Override
     protected void onResume() {

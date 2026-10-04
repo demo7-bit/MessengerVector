@@ -263,7 +263,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
             rect = new RectF();
 
             searchBackground = new View(context);
-            searchBackground.setBackgroundDrawable(Theme.createRoundRectDrawable(dp(18), getThemedColor(Theme.key_dialogSearchBackground)));
+            searchBackground.setBackgroundDrawable(Theme.createRoundRectDrawable(dp(Theme.MODERN_FIELD_RADIUS_DP), getThemedColor(Theme.key_dialogSearchBackground)));
             addView(searchBackground, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 36, Gravity.LEFT | Gravity.TOP, 14, 0, 14, 0));
 
             slidingView = new View(context) {
@@ -289,7 +289,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
                         paint.setShader(linearGradient);
                     }
                     rect.set(0, 0, getMeasuredWidth(), getMeasuredHeight());
-                    canvas.drawRoundRect(rect, dp(18), dp(18), paint);
+                    canvas.drawRoundRect(rect, dp(Theme.MODERN_FIELD_RADIUS_DP), dp(Theme.MODERN_FIELD_RADIUS_DP), paint);
                 }
             };
             addView(slidingView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 36, Gravity.LEFT | Gravity.TOP, 14, 0, 14, 0));

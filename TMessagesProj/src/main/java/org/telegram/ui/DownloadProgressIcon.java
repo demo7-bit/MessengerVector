@@ -13,7 +13,6 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.DownloadController;
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.ImageReceiver;
-import org.telegram.messenger.MessagesStorage;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.Theme;
@@ -79,12 +78,13 @@ public class DownloadProgressIcon extends View implements NotificationCenter.Not
             return;
         }
 
-        if (currentColor != Theme.getColor(Theme.key_actionBarDefaultIcon)) {
-            currentColor = Theme.getColor(Theme.key_actionBarDefaultIcon);
-            paint.setColor(Theme.getColor(Theme.key_actionBarDefaultIcon));
-            paint2.setColor(Theme.getColor(Theme.key_actionBarDefaultIcon));
-            downloadImageReceiver.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_actionBarDefaultIcon), PorterDuff.Mode.SRC_IN));
-            downloadCompleteImageReceiver.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_actionBarDefaultIcon), PorterDuff.Mode.SRC_IN));
+        int themedIconColor = Theme.getColor(Theme.key_actionBarDefaultIcon);
+        if (currentColor != themedIconColor) {
+            currentColor = themedIconColor;
+            paint.setColor(themedIconColor);
+            paint2.setColor(themedIconColor);
+            downloadImageReceiver.setColorFilter(new PorterDuffColorFilter(themedIconColor, PorterDuff.Mode.SRC_IN));
+            downloadCompleteImageReceiver.setColorFilter(new PorterDuffColorFilter(themedIconColor, PorterDuff.Mode.SRC_IN));
             paint2.setAlpha(100);
         }
 
@@ -155,25 +155,26 @@ public class DownloadProgressIcon extends View implements NotificationCenter.Not
 
     private void updateDownloadingListeners() {
         DownloadController downloadController = DownloadController.getInstance(currentAccount);
+        FileLoader fileLoader = FileLoader.getInstance(currentAccount);
         HashMap<String, ProgressObserver> observerHashMap = new HashMap<>();
         for (int i = 0; i < currentListeners.size(); i++) {
             observerHashMap.put(currentListeners.get(i).fileName, currentListeners.get(i));
-            DownloadController.getInstance(currentAccount).removeLoadingFileObserver(currentListeners.get(i));
+            downloadController.removeLoadingFileObserver(currentListeners.get(i));
         }
         currentListeners.clear();
         for (int i = 0; i < downloadController.downloadingFiles.size(); i++) {
             String filename = downloadController.downloadingFiles.get(i).getFileName();
-            if (FileLoader.getInstance(currentAccount).isLoadingFile(filename)) {
+            if (fileLoader.isLoadingFile(filename)) {
                 ProgressObserver progressObserver = observerHashMap.get(filename);
                 if (progressObserver == null) {
                     progressObserver = new ProgressObserver(filename);
                 }
-                DownloadController.getInstance(currentAccount).addLoadingFileObserver(filename, progressObserver);
+                downloadController.addLoadingFileObserver(filename, progressObserver);
                 currentListeners.add(progressObserver);
             }
         }
         if (currentListeners.size() == 0 && !wasDrawn) {
-            if (DownloadController.getInstance(currentAccount).hasUnviewedDownloads()) {
+            if (downloadController.hasUnviewedDownloads()) {
                 progress = 1f;
                 currentProgress = 1f;
                 showCompletedIcon = true;
@@ -186,7 +187,6 @@ public class DownloadProgressIcon extends View implements NotificationCenter.Not
     }
 
     public void updateProgress() {
-        MessagesStorage messagesStorage = MessagesStorage.getInstance(currentAccount);
         long total = 0;
         long downloaded = 0;
         for (int i = 0; i < currentListeners.size(); i++) {
@@ -209,8 +209,9 @@ public class DownloadProgressIcon extends View implements NotificationCenter.Not
     }
 
     private void detachCurrentListeners() {
+        DownloadController downloadController = DownloadController.getInstance(currentAccount);
         for (int i = 0; i < currentListeners.size(); i++) {
-            DownloadController.getInstance(currentAccount).removeLoadingFileObserver(currentListeners.get(i));
+            downloadController.removeLoadingFileObserver(currentListeners.get(i));
         }
         currentListeners.clear();
     }

@@ -80,6 +80,7 @@ public class CaptionStory extends CaptionContainerView {
 
         periodButton = new ImageView(context);
         periodButton.setImageDrawable(periodDrawable = new PeriodDrawable());
+        periodDrawable.updateColors(Color.WHITE, Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider), Color.WHITE);
         periodButton.setBackground(Theme.createSelectorDrawable(Theme.ACTION_BAR_WHITE_SELECTOR_COLOR, RIPPLE_MASK_CIRCLE_20DP, dp(18)));
         periodButton.setScaleType(ImageView.ScaleType.CENTER);
         periodButton.setContentDescription(LocaleController.getString(R.string.StoryPeriodHint));
@@ -248,7 +249,7 @@ public class CaptionStory extends CaptionContainerView {
     private final Drawable roundDrawable;
     {
         whitePaint.setColor(0xFFFFFFFF);
-        roundPaint.setColor(0xFF1A9CFF);
+        roundPaint.setColor(Theme.getColor(Theme.key_chat_recordedVoiceBackground, resourcesProvider));
 
         tinyWaveDrawable.minRadius = dp(47);
         tinyWaveDrawable.maxRadius = dp(55);

@@ -10,7 +10,6 @@ package org.telegram.messenger;
 
 import android.app.Service;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.IBinder;
 
 public class NotificationsService extends Service {
@@ -18,11 +17,13 @@ public class NotificationsService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        PushDiagnostics.log("mtproto_service_create", "process=" + android.os.Process.myPid());
         ApplicationLoader.postInitApplication();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        PushDiagnostics.log("mtproto_service_start", "startId=" + startId + " flags=" + flags);
         return START_STICKY;
     }
 
@@ -32,10 +33,10 @@ public class NotificationsService extends Service {
     }
 
     public void onDestroy() {
+        PushDiagnostics.log("mtproto_service_destroy", "restartRequested=" + ApplicationLoader.isPushServiceEnabled());
         super.onDestroy();
-        SharedPreferences preferences = MessagesController.getGlobalNotificationsSettings();
-        if (preferences.getBoolean("pushService", true)) {
-            Intent intent = new Intent("org.telegram.start");
+        if (ApplicationLoader.isPushServiceEnabled()) {
+            Intent intent = new Intent(getPackageName() + ".start");
             intent.setPackage(getPackageName());
             sendBroadcast(intent);
         }

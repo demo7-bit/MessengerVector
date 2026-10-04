@@ -65,7 +65,7 @@ public class ButtonWithCounterView extends FrameLayout implements Loadable {
     }
 
     public ButtonWithCounterView setRound() {
-        setRoundRadius(24);
+        setRoundRadius(Theme.MODERN_BUTTON_RADIUS_DP);
         return this;
     }
 

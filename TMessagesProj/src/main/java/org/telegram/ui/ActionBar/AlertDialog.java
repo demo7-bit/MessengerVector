@@ -134,6 +134,10 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
 
     private CharSequence[] items;
     private int[] itemIcons;
+    private int itemHeightDp = 48;
+    private float itemTextSizeDp = 16;
+    private int itemIconSizeDp;
+    private int itemIconTextStartDp = 56;
     private CharSequence title;
     private CharSequence secondTitle;
     private CharSequence subtitle;
@@ -240,6 +244,8 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
         private final Theme.ResourcesProvider resourcesProvider;
         private TextView textView;
         private ImageView imageView;
+        private int preferredHeightDp = 48;
+        private int iconTextStartDp = 56;
 
         public AlertDialogCell(Context context, Theme.ResourcesProvider resourcesProvider) {
             super(context);
@@ -265,7 +271,23 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
 
         @Override
         protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-            super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(dp(48), MeasureSpec.EXACTLY));
+            super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(dp(preferredHeightDp), MeasureSpec.EXACTLY));
+        }
+
+        public void setItemStyle(int heightDp, float textSizeDp) {
+            preferredHeightDp = heightDp;
+            textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, textSizeDp);
+        }
+
+        public void setItemIconStyle(int iconSizeDp, int textStartDp) {
+            if (iconSizeDp > 0) {
+                FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) imageView.getLayoutParams();
+                layoutParams.width = dp(iconSizeDp);
+                layoutParams.height = dp(iconSizeDp);
+                imageView.setLayoutParams(layoutParams);
+                imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            }
+            iconTextStartDp = textStartDp;
         }
 
         public void setTextColor(int color) {
@@ -281,7 +303,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
             if (icon != 0) {
                 imageView.setImageResource(icon);
                 imageView.setVisibility(VISIBLE);
-                textView.setPadding(LocaleController.isRTL ? 0 : dp(56), 0, LocaleController.isRTL ? dp(56) : 0, 0);
+                textView.setPadding(LocaleController.isRTL ? 0 : dp(iconTextStartDp), 0, LocaleController.isRTL ? dp(iconTextStartDp) : 0, 0);
             } else {
                 imageView.setVisibility(INVISIBLE);
                 textView.setPadding(0, 0, 0, 0);
@@ -908,10 +930,12 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
                     continue;
                 }
                 AlertDialogCell cell = new AlertDialogCell(getContext(), resourcesProvider);
+                cell.setItemStyle(itemHeightDp, itemTextSizeDp);
+                cell.setItemIconStyle(itemIconSizeDp, itemIconTextStartDp);
                 cell.setTextAndIcon(items[a], itemIcons != null ? itemIcons[a] : 0);
                 cell.setTag(a);
                 itemViews.add(cell);
-                scrollContainer.addView(cell, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 50));
+                scrollContainer.addView(cell, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, itemHeightDp + 2));
                 cell.setOnClickListener(v -> {
                     if (onClickListener != null) {
                         onClickListener.onClick(AlertDialog.this, (Integer) v.getTag());
@@ -1758,6 +1782,18 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
             alertDialog.items = items;
             alertDialog.itemIcons = icons;
             alertDialog.onClickListener = onClickListener;
+            return this;
+        }
+
+        public Builder setItemsStyle(int heightDp, float textSizeDp) {
+            alertDialog.itemHeightDp = heightDp;
+            alertDialog.itemTextSizeDp = textSizeDp;
+            return this;
+        }
+
+        public Builder setItemsIconStyle(int iconSizeDp, int textStartDp) {
+            alertDialog.itemIconSizeDp = iconSizeDp;
+            alertDialog.itemIconTextStartDp = textStartDp;
             return this;
         }
 

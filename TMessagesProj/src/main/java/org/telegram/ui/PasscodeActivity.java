@@ -227,7 +227,11 @@ public class PasscodeActivity extends BaseFragment implements NotificationCenter
             @Override
             public void onItemClick(int id) {
                 if (id == -1) {
-                    if (chatPasscodeMode && chatPasscodeCancel != null) chatPasscodeCancel.run();
+                    if (chatPasscodeMode && chatPasscodeCancel != null) {
+                        Runnable callback = chatPasscodeCancel;
+                        chatPasscodeCancel = null;
+                        callback.run();
+                    }
                     finishFragment();
                 }
             }
@@ -286,6 +290,7 @@ public class PasscodeActivity extends BaseFragment implements NotificationCenter
         contentView.addView(fragmentContentView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 0, 1f));
 
         keyboardView = new CustomPhoneKeyboardView(context);
+        keyboardView.setNeutralButtonBackground(true);
         keyboardView.setVisibility(isCustomKeyboardVisible() ? View.VISIBLE : View.GONE);
         contentView.addView(keyboardView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, CustomPhoneKeyboardView.KEYBOARD_HEIGHT_DP));
 
@@ -457,7 +462,11 @@ public class PasscodeActivity extends BaseFragment implements NotificationCenter
                         @Override
                         public void onItemClick(int id) {
                             if (id == -1) {
-                                if (chatPasscodeMode && chatPasscodeCancel != null) chatPasscodeCancel.run();
+                                if (chatPasscodeMode && chatPasscodeCancel != null) {
+                                    Runnable callback = chatPasscodeCancel;
+                                    chatPasscodeCancel = null;
+                                    callback.run();
+                                }
                                 finishFragment();
                             } else if (id == ID_SWITCH_TYPE) {
                                 currentPasswordType = currentPasswordType == SharedConfig.PASSCODE_TYPE_PIN ? SharedConfig.PASSCODE_TYPE_PASSWORD : SharedConfig.PASSCODE_TYPE_PIN;

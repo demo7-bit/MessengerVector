@@ -51,14 +51,14 @@ import java.io.File;
 
 public class MusicPlayerService extends Service implements NotificationCenter.NotificationCenterDelegate {
 
-    public static final String NOTIFY_PREVIOUS = "org.telegram.android.musicplayer.previous";
-    public static final String NOTIFY_CLOSE = "org.telegram.android.musicplayer.close";
-    public static final String NOTIFY_PAUSE = "org.telegram.android.musicplayer.pause";
-    public static final String NOTIFY_PLAY = "org.telegram.android.musicplayer.play";
-    public static final String NOTIFY_NEXT = "org.telegram.android.musicplayer.next";
-    public static final String NOTIFY_SEEK = "org.telegram.android.musicplayer.seek";
-    public static final String NOTIFY_REPEAT = "org.telegram.android.musicplayer.repeat";
-    public static final String NOTIFY_SHUFFLE = "org.telegram.android.musicplayer.shuffle";
+    public static final String NOTIFY_PREVIOUS = ApplicationLoader.getApplicationId() + ".musicplayer.previous";
+    public static final String NOTIFY_CLOSE = ApplicationLoader.getApplicationId() + ".musicplayer.close";
+    public static final String NOTIFY_PAUSE = ApplicationLoader.getApplicationId() + ".musicplayer.pause";
+    public static final String NOTIFY_PLAY = ApplicationLoader.getApplicationId() + ".musicplayer.play";
+    public static final String NOTIFY_NEXT = ApplicationLoader.getApplicationId() + ".musicplayer.next";
+    public static final String NOTIFY_SEEK = ApplicationLoader.getApplicationId() + ".musicplayer.seek";
+    public static final String NOTIFY_REPEAT = ApplicationLoader.getApplicationId() + ".musicplayer.repeat";
+    public static final String NOTIFY_SHUFFLE = ApplicationLoader.getApplicationId() + ".musicplayer.shuffle";
 
     private static final int ID_NOTIFICATION = 5;
 
@@ -356,7 +356,7 @@ public class MusicPlayerService extends Service implements NotificationCenter.No
         AudioInfo audioInfo = MediaController.getInstance().getAudioInfo();
         Intent intent = new Intent(ApplicationLoader.applicationContext, LaunchActivity.class);
         if (messageObject.isMusic()) {
-            intent.setAction("com.tmessages.openplayer");
+            intent.setAction(ApplicationLoader.getApplicationId() + ".openplayer");
             intent.addCategory(Intent.CATEGORY_LAUNCHER);
         } else if (messageObject.isVoice() || messageObject.isRoundVideo()) {
             intent.setAction(Intent.ACTION_VIEW);

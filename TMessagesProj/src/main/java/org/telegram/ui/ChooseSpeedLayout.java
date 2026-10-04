@@ -31,7 +31,14 @@ public class ChooseSpeedLayout {
     private static final float MAX_SPEED = 2.5f;
 
     ActionBarMenuSubItem[] speedItems = new ActionBarMenuSubItem[5];
+    private final Theme.ResourcesProvider resourcesProvider;
+
     public ChooseSpeedLayout(Context context, PopupSwipeBackLayout swipeBackLayout, Callback callback) {
+        this(context, swipeBackLayout, callback, null);
+    }
+
+    public ChooseSpeedLayout(Context context, PopupSwipeBackLayout swipeBackLayout, Callback callback, Theme.ResourcesProvider resourcesProvider) {
+        this.resourcesProvider = resourcesProvider;
         speedSwipeBackLayout = new ActionBarPopupWindow.ActionBarPopupWindowLayout(context, 0, null);
         speedSwipeBackLayout.setFitItems(true);
 
@@ -59,7 +66,7 @@ public class ChooseSpeedLayout {
         layoutParams.height = AndroidUtilities.dp(8);
         gap.setLayoutParams(layoutParams);
 
-        slider = new ActionBarMenuSlider.SpeedSlider(context, null);
+        slider = new ActionBarMenuSlider.SpeedSlider(context, resourcesProvider);
         slider.setMinimumWidth(AndroidUtilities.dp(196));
         slider.setDrawShadow(false);
         slider.setBackgroundColor(0xff222222);
@@ -137,7 +144,8 @@ public class ChooseSpeedLayout {
                 a == 3 && Math.abs(currentVideoSpeed - 1.5f) < 0.1f ||
                 a == 4 && Math.abs(currentVideoSpeed - 2.0f) < 0.1f
             )) {
-                speedItems[a].setColors(0xff6BB6F9, 0xff6BB6F9);
+                int accentColor = Theme.getColorWithBrandFallback(Theme.key_player_progress, resourcesProvider);
+                speedItems[a].setColors(accentColor, accentColor);
             } else {
                 speedItems[a].setColors(0xfffafafa, 0xfffafafa);
             }

@@ -17,3 +17,16 @@ TMessagesProj_AppHockeyApp/afat/
 TMessagesProj_AppStandalone/afat/
 TMessagesProj_AppHuawei/afat/
 TMessagesProj/jni/ffmpeg/build_android
+*.jks
+*.keystore
+*.pfx
+*.apk
+*.aab
+agconnect-services.json
+.env.*
+.gradle/
+.cxx/
+**/build/
+firebase_new/
+cloudflare-workers/
+analytics.settings

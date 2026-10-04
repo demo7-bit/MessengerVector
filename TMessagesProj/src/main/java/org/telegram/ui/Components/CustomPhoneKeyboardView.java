@@ -38,6 +38,7 @@ public class CustomPhoneKeyboardView extends ViewGroup {
     private final View[] views = new View[12];
 
     private View viewToFindFocus;
+    private boolean neutralButtonBackground;
 
     private boolean dispatchBackWhenEmpty;
     private boolean runningLongClick;
@@ -249,14 +250,17 @@ public class CustomPhoneKeyboardView extends ViewGroup {
         }
     }
 
-    private static Drawable getButtonDrawable(int index) {
+    private Drawable getButtonDrawable(int index) {
         final boolean isTop = index < 3;        // 0 1 2
         final boolean isLeft = index % 3 == 0;  // 0 3 6 9
         final boolean isRight = index % 3 == 2; // 2 5 8 11
         final boolean isBottom = index > 8;     // 9 10 11
 
-        final int defaultColor = Theme.getColor(Theme.key_listSelector);
-        final int pressedColor = ColorUtils.setAlphaComponent(Theme.getColor(Theme.key_listSelector), 30);
+        final int selectorColor = neutralButtonBackground
+                ? Theme.getColorWithoutBrandAccent(Theme.key_listSelector)
+                : Theme.getColor(Theme.key_listSelector);
+        final int defaultColor = selectorColor;
+        final int pressedColor = ColorUtils.setAlphaComponent(selectorColor, 30);
 
         return Theme.createSimpleSelectorRoundRectDrawable(
             dp(isLeft && isTop ? 24 : 12),
@@ -264,6 +268,14 @@ public class CustomPhoneKeyboardView extends ViewGroup {
             dp(isRight && isBottom ? 24 : 12),
             dp(/*index == 10 || index == 6 ||*/ isLeft && isBottom ? 24 : 12),
             defaultColor, pressedColor, pressedColor);
+    }
+
+    public void setNeutralButtonBackground(boolean neutralButtonBackground) {
+        if (this.neutralButtonBackground == neutralButtonBackground) {
+            return;
+        }
+        this.neutralButtonBackground = neutralButtonBackground;
+        updateColors();
     }
 
     public void updateColors() {

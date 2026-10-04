@@ -258,7 +258,7 @@ public class AvatarDrawable extends Drawable {
             color = color2 = Theme.getColor(Theme.key_chats_actionBackground);
         } else if (avatarType == AVATAR_TYPE_ARCHIVED) {
             color = color2 = getThemedColor(Theme.key_avatar_backgroundArchivedHidden);
-        } else if (avatarType == AVATAR_TYPE_SUGGESTION || avatarType == AVATAR_TYPE_REPLIES || avatarType == AVATAR_TYPE_SAVED || avatarType == AVATAR_TYPE_OTHER_CHATS) {
+        } else if (avatarType == AVATAR_TYPE_SAVED || avatarType == AVATAR_TYPE_SUGGESTION || avatarType == AVATAR_TYPE_REPLIES || avatarType == AVATAR_TYPE_OTHER_CHATS) {
             hasGradient = true;
             color = getThemedColor(Theme.key_avatar_backgroundSaved);
             color2 = getThemedColor(Theme.key_avatar_background2Saved);
@@ -398,10 +398,10 @@ public class AvatarDrawable extends Drawable {
 
     public void setInfo(long id) {
         invalidateTextLayout = true;
-        hasGradient = true;
+        hasGradient = false;
         hasAdvancedGradient = false;
-        color = getThemedColor(Theme.keys_avatar_background[getColorIndex(id)]);
-        color2 = getThemedColor(Theme.keys_avatar_background2[getColorIndex(id)]);
+        color = color2 = getThemedColor(Theme.key_avatar_backgroundGray);
+        needApplyColorAccent = false;
         avatarType = AVATAR_TYPE_NORMAL;
         drawDeleted = false;
         getAvatarSymbols("", "", "", stringBuilder);
@@ -439,15 +439,15 @@ public class AvatarDrawable extends Drawable {
         } else if (customColor != null) {
             setPeerColor(customColor);
         } else {
+            int neutralColor = getThemedColor(Theme.key_avatar_backgroundGray);
             if (advancedGradient) {
-                int[] gradient = advancedGradients[getColorIndex(id)];
-                this.advancedGradient.setColors(gradient[0], gradient[1], gradient[2], gradient[3]);
+                this.advancedGradient.setColors(neutralColor, neutralColor, neutralColor, neutralColor);
             } else {
-                color = getThemedColor(Theme.keys_avatar_background[getColorIndex(id)]);
-                color2 = getThemedColor(Theme.keys_avatar_background2[getColorIndex(id)]);
+                hasGradient = false;
+                color = color2 = neutralColor;
             }
         }
-        needApplyColorAccent = id == 5; // Tinting manually set blue color
+        needApplyColorAccent = false;
 
 
         avatarType = AVATAR_TYPE_NORMAL;

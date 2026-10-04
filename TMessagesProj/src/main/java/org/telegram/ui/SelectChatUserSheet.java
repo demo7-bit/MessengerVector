@@ -120,7 +120,7 @@ public class SelectChatUserSheet extends BottomSheetWithRecyclerListView {
 
         searchContainer = new FrameLayout(context);
         searchBox = new FrameLayout(context);
-        searchBox.setBackground(Theme.createRoundRectDrawable(dp(20), getThemedColor(Theme.key_dialogSearchBackground)));
+        searchBox.setBackground(Theme.createRoundRectDrawable(dp(Theme.MODERN_FIELD_RADIUS_DP), getThemedColor(Theme.key_dialogSearchBackground)));
         final ImageView searchImageView = new ImageView(context);
         searchImageView.setScaleType(ImageView.ScaleType.CENTER);
         searchImageView.setImageResource(R.drawable.smiles_inputsearch);

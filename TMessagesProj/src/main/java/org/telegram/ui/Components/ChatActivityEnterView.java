@@ -595,6 +595,10 @@ public class ChatActivityEnterView extends FrameLayout implements
     private ActionBarPopupWindow.ActionBarPopupWindowLayout sendPopupLayout;
     private ImageView cancelBotButton;
     private ChatActivityEnterViewAnimatedIconView emojiButton;
+    private ImageView vekkiAiButton;
+    private Runnable vekkiAiButtonClickListener;
+    private boolean vekkiAiButtonEnabled;
+    private boolean vekkiAiChatOpened;
     private ImageView deleteRichDraftButton;
     @Nullable
     private ImageView expandStickersButton;
@@ -725,6 +729,7 @@ public class ChatActivityEnterView extends FrameLayout implements
     private boolean allowAnimatedEmoji;
     private boolean allowStickers;
     private boolean allowGifs;
+    private boolean textOnlyMode;
 
     private int lastSizeChangeValue1;
     private boolean lastSizeChangeValue2;
@@ -775,6 +780,10 @@ public class ChatActivityEnterView extends FrameLayout implements
     private Runnable openKeyboardRunnable = new Runnable() {
         @Override
         public void run() {
+            if (isPasscodeImeSuppressed()) {
+                suppressKeyboardForPasscode();
+                return;
+            }
             if (hasBotWebView() && botCommandsMenuIsShowing() || BaseFragment.hasSheets(parentFragment)) {
                 return;
             }
@@ -2655,6 +2664,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 }
                 return super.drawChild(canvas, child, drawingTime);
             }
+
         };
         frameLayout.setClipChildren(false);
         textFieldContainer.addView(frameLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM, 0, 0, DEFAULT_HEIGHT, 0));
@@ -2662,9 +2672,12 @@ public class ChatActivityEnterView extends FrameLayout implements
         emojiButton = new ChatActivityEnterViewAnimatedIconView(context) {
             @Override
             protected void onDraw(Canvas canvas) {
+                canvas.save();
+                canvas.translate(-dpf2(1.5f), 0);
                 super.onDraw(canvas);
+                canvas.restore();
                 if (getTag() != null && attachLayout != null && !emojiViewVisible && !MediaDataController.getInstance(currentAccount).getUnreadStickerSets().isEmpty() && dotPaint != null) {
-                    int x = getWidth() / 2 + dp(4 + 5);
+                    int x = getWidth() / 2 + dp(4 + 5) - dp(2);
                     int y = getHeight() / 2 - dp(13 - 5);
                     canvas.drawCircle(x, y, dp(5), dotPaint);
 
@@ -2712,6 +2725,25 @@ public class ChatActivityEnterView extends FrameLayout implements
         });
         messageEditTextContainer.addView(emojiButton, LayoutHelper.createFrame(DEFAULT_HEIGHT, DEFAULT_HEIGHT, Gravity.BOTTOM | Gravity.LEFT, 2, 0, 0, 0));
         setEmojiButtonImage(false, false);
+
+        vekkiAiButton = new ImageView(context);
+        vekkiAiButton.setImageResource(R.drawable.vekki_ai);
+        vekkiAiButton.setScaleType(ImageView.ScaleType.CENTER);
+        vekkiAiButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.SRC_IN));
+        vekkiAiButton.setBackground(Theme.createInsetRoundRectDrawable(getThemedColor(Theme.key_listSelector), dp(19), dp(1), dp(3)));
+        vekkiAiButton.setContentDescription(getString(R.string.VekkiAIChatButton));
+        vekkiAiButton.setFocusable(true);
+        vekkiAiButton.setVisibility(View.GONE);
+        ScaleStateListAnimator.apply(vekkiAiButton);
+        vekkiAiButton.setOnClickListener(v -> {
+            if (adjustPanLayoutHelper != null && adjustPanLayoutHelper.animationInProgress()) {
+                return;
+            }
+            if (vekkiAiButtonClickListener != null) {
+                vekkiAiButtonClickListener.run();
+            }
+        });
+        messageEditTextContainer.addView(vekkiAiButton, LayoutHelper.createFrame(DEFAULT_HEIGHT, DEFAULT_HEIGHT, Gravity.BOTTOM | Gravity.LEFT, 2, 0, 0, 0));
 
         deleteRichDraftButton = new ImageView(context);
         deleteRichDraftButton.setScaleType(ImageView.ScaleType.CENTER);
@@ -3579,7 +3611,7 @@ public class ChatActivityEnterView extends FrameLayout implements
     }
 
     public void setOnSendButtonLongClick(OnLongClickListener listener) {
-        sendButton.setOnLongClickListener(listener != null ? listener : this::onSendLongClick);
+        sendButton.setOnLongClickListener(textOnlyMode ? view -> true : listener != null ? listener : this::onSendLongClick);
     }
 
     public long getStarsPrice() {
@@ -4724,6 +4756,9 @@ public class ChatActivityEnterView extends FrameLayout implements
 
     private ActionBarMenuSubItem actionScheduleButton;
     private boolean onSendLongClick(View view) {
+        if (textOnlyMode) {
+            return true;
+        }
         if (isInScheduleMode() || parentFragment != null && parentFragment.getChatMode() == ChatActivity.MODE_QUICK_REPLIES || animatorEphemeralMessageVisibility.getValue()) {
             return false;
         }
@@ -5290,6 +5325,9 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
 
         private void send(InputContentInfoCompat inputContentInfo, boolean notify, int scheduleDate, int scheduleRepeatPeriod) {
+            if (textOnlyMode) {
+                return;
+            }
             if (messageSendPreview != null) {
                 messageSendPreview.dismiss(true);
                 messageSendPreview = null;
@@ -5316,8 +5354,11 @@ public class ChatActivityEnterView extends FrameLayout implements
                 return null;
             }
             try {
-                if (isEditingBusinessLink() || isLiveComment) {
+                if (textOnlyMode || isEditingBusinessLink() || isLiveComment) {
                     EditorInfoCompat.setContentMimeTypes(editorInfo, null);
+                    if (textOnlyMode) {
+                        return ic;
+                    }
                 } else {
                     EditorInfoCompat.setContentMimeTypes(editorInfo, new String[]{"image/gif", "image/*", "image/jpg", "image/png", "image/webp"});
                 }
@@ -5474,7 +5515,7 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         @Override
         public boolean onTextContextMenuItem(int id) {
-            if (id == android.R.id.paste) {
+            if (!textOnlyMode && id == android.R.id.paste) {
                 isPaste = true;
 
                 ClipboardManager clipboard = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
@@ -5489,6 +5530,9 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
 
         private void editPhoto(Uri uri, String mime) {
+            if (textOnlyMode) {
+                return;
+            }
             final File file = AndroidUtilities.generatePicturePath(parentFragment != null && parentFragment.isSecretChat(), MimeTypeMap.getSingleton().getExtensionFromMimeType(mime));
             Utilities.globalQueue.postRunnable(() -> {
                 try {
@@ -5645,7 +5689,7 @@ public class ChatActivityEnterView extends FrameLayout implements
 
             @Override
             public boolean onTextContextMenuItem(int id) {
-                if (id == android.R.id.paste && handleRichHtmlPaste()) {
+                if (!textOnlyMode && id == android.R.id.paste && handleRichHtmlPaste()) {
                     return true;
                 }
                 return super.onTextContextMenuItem(id);
@@ -6016,7 +6060,7 @@ public class ChatActivityEnterView extends FrameLayout implements
 
     private boolean shownAiButton;
     private void showAiButton(boolean show_) {
-        final boolean show = (show_ || richDraftActive) && parentFragment != null && !parentFragment.isSecretChat();
+        final boolean show = !textOnlyMode && (show_ || richDraftActive) && parentFragment != null && !parentFragment.isSecretChat();
 
         if (shownAiButton == show) return;
         if (show) {
@@ -6069,7 +6113,7 @@ public class ChatActivityEnterView extends FrameLayout implements
 
     private boolean shownRichButton;
     private void showRichButton(boolean show_) {
-        final boolean show = (richDraftActive || show_) && parentFragment != null && !parentFragment.isSecretChat() && editingMessageObject == null && MessagesController.getInstance(currentAccount).richEditorAvailable();
+        final boolean show = !textOnlyMode && (richDraftActive || show_) && parentFragment != null && !parentFragment.isSecretChat() && editingMessageObject == null && MessagesController.getInstance(currentAccount).richEditorAvailable();
 
         if (shownRichButton == show) return;
         shownRichButton = show;
@@ -6233,6 +6277,11 @@ public class ChatActivityEnterView extends FrameLayout implements
     }
 
     public void setAllowStickersAndGifs(boolean needAnimatedEmoji, boolean needStickers, boolean needGifs, boolean waitingForKeyboardOpen) {
+        if (textOnlyMode) {
+            needAnimatedEmoji = false;
+            needStickers = false;
+            needGifs = false;
+        }
         if ((allowStickers != needStickers || allowGifs != needGifs) && emojiView != null) {
             if (emojiViewVisible && !waitingForKeyboardOpen) {
                 removeEmojiViewAfterAnimation = true;
@@ -6250,6 +6299,104 @@ public class ChatActivityEnterView extends FrameLayout implements
             emojiView.setAllow(allowStickers, allowGifs, true);
         }
         setEmojiButtonImage(false, !isPaused);
+    }
+
+    public void setTextOnlyMode(boolean enabled) {
+        if (textOnlyMode == enabled) {
+            return;
+        }
+        textOnlyMode = enabled;
+        if (!enabled) {
+            return;
+        }
+        forceShowSendButton = true;
+        messageWebPageSearch = false;
+        setAllowStickersAndGifs(false, false, false);
+        if (isPopupShowing()) {
+            hidePopup(false);
+        }
+        checkSendButton(false);
+        applyTextOnlyMode();
+        requestLayout();
+    }
+
+    private void applyTextOnlyMode() {
+        if (!textOnlyMode) {
+            return;
+        }
+        if (emojiButton != null) {
+            emojiButton.setVisibility(GONE);
+            emojiButton.setEnabled(false);
+        }
+        if (vekkiAiButton != null) {
+            vekkiAiButton.setVisibility(GONE);
+            vekkiAiButton.setEnabled(false);
+        }
+        if (attachLayout != null) {
+            attachLayout.setVisibility(GONE);
+            attachLayout.setEnabled(false);
+        }
+        if (attachButton != null) {
+            attachButton.setVisibility(GONE);
+            attachButton.setEnabled(false);
+        }
+        if (audioVideoButtonContainer != null) {
+            audioVideoButtonContainer.setVisibility(GONE);
+            audioVideoButtonContainer.setEnabled(false);
+        }
+        if (recordPanel != null) {
+            recordPanel.setVisibility(GONE);
+        }
+        if (recordedAudioPanel != null) {
+            recordedAudioPanel.setVisibility(GONE);
+        }
+        if (botButton != null) {
+            botButton.setVisibility(GONE);
+            botButton.setEnabled(false);
+        }
+        if (botCommandsMenuButton != null) {
+            botCommandsMenuButton.setVisibility(GONE);
+            botCommandsMenuButton.setEnabled(false);
+        }
+        if (botWebViewButton != null) {
+            botWebViewButton.setVisibility(GONE);
+            botWebViewButton.setEnabled(false);
+        }
+        if (botKeyboardView != null) {
+            botKeyboardView.setVisibility(GONE);
+        }
+        if (reactionsButton != null) {
+            reactionsButton.setVisibility(GONE);
+            reactionsButton.setEnabled(false);
+        }
+        if (giftButton != null) {
+            giftButton.setVisibility(GONE);
+            giftButton.setEnabled(false);
+        }
+        if (suggestButton != null) {
+            suggestButton.setVisibility(GONE);
+            suggestButton.setEnabled(false);
+        }
+        if (scheduledButton != null) {
+            scheduledButton.setVisibility(GONE);
+            scheduledButton.setTag(null);
+        }
+        if (notifyButton != null) {
+            notifyButton.setVisibility(GONE);
+        }
+        if (expandStickersButton != null) {
+            expandStickersButton.setVisibility(GONE);
+            expandStickersButton.setEnabled(false);
+        }
+        if (aiButton != null) {
+            aiButton.setVisibility(GONE);
+            aiButton.setEnabled(false);
+        }
+        if (richButton != null) {
+            richButton.setVisibility(GONE);
+            richButton.setEnabled(false);
+        }
+        updateFieldRight(0);
     }
 
     public void addEmojiToRecent(String code) {
@@ -6553,10 +6700,22 @@ public class ChatActivityEnterView extends FrameLayout implements
     private Runnable hideKeyboardRunnable;
 
     public void onPause() {
+        onPause(false);
+    }
+
+    public void onPause(boolean preserveKeyboard) {
         isPaused = true;
         if (senderSelectPopupWindow != null) {
             senderSelectPopupWindow.setPauseNotifications(false);
             senderSelectPopupWindow.dismiss();
+        }
+        if (preserveKeyboard) {
+            showKeyboardOnResume = false;
+            if (hideKeyboardRunnable != null) {
+                AndroidUtilities.cancelRunOnUIThread(hideKeyboardRunnable);
+                hideKeyboardRunnable = null;
+            }
+            return;
         }
         if (keyboardVisible) {
             showKeyboardOnResume = true;
@@ -6574,6 +6733,11 @@ public class ChatActivityEnterView extends FrameLayout implements
         if (hideKeyboardRunnable != null) {
             AndroidUtilities.cancelRunOnUIThread(hideKeyboardRunnable);
             hideKeyboardRunnable = null;
+        }
+
+        if (isPasscodeImeSuppressed()) {
+            suppressKeyboardForPasscode();
+            return;
         }
 
         if (hasBotWebView() && botCommandsMenuIsShowing()) {
@@ -6892,8 +7056,8 @@ public class ChatActivityEnterView extends FrameLayout implements
     }
 
     public void setWebPage(TLRPC.WebPage webPage, boolean searchWebPages) {
-        messageWebPage = webPage;
-        messageWebPageSearch = searchWebPages;
+        messageWebPage = textOnlyMode ? null : webPage;
+        messageWebPageSearch = !textOnlyMode && searchWebPages;
     }
 
     public boolean isMessageWebPageSearchEnabled() {
@@ -10287,6 +10451,70 @@ public class ChatActivityEnterView extends FrameLayout implements
         return emojiButton;
     }
 
+    public void setVekkiAiButtonClickListener(@Nullable Runnable listener) {
+        boolean enabledChanged = vekkiAiButtonEnabled != (listener != null);
+        vekkiAiButtonClickListener = listener;
+        vekkiAiButtonEnabled = listener != null;
+        syncVekkiAiButtonState();
+        if (enabledChanged) {
+            requestLayout();
+        }
+    }
+
+    public void setVekkiAiChatOpened(boolean opened) {
+        if (vekkiAiChatOpened == opened) {
+            return;
+        }
+        vekkiAiChatOpened = opened;
+        updateVekkiAiButtonColors();
+        if (vekkiAiButton != null) {
+            vekkiAiButton.setSelected(opened);
+        }
+    }
+
+    private void updateVekkiAiButtonColors() {
+        if (vekkiAiButton == null) {
+            return;
+        }
+        int iconColor = getThemedColor(vekkiAiChatOpened ? Theme.key_telegram_color : Theme.key_glass_defaultIcon);
+        vekkiAiButton.setColorFilter(new PorterDuffColorFilter(iconColor, PorterDuff.Mode.SRC_IN));
+        vekkiAiButton.setBackground(Theme.createInsetRoundRectDrawable(getThemedColor(Theme.key_listSelector), dp(19), dp(1), dp(3)));
+    }
+
+    private int getVekkiAiButtonOffset() {
+        return vekkiAiButtonEnabled ? dp(DEFAULT_HEIGHT) : 0;
+    }
+
+    private void syncVekkiAiButtonState() {
+        if (vekkiAiButton == null || emojiButton == null) {
+            return;
+        }
+        if (!vekkiAiButtonEnabled || textOnlyMode) {
+            if (vekkiAiButton.getVisibility() != View.GONE) {
+                vekkiAiButton.setVisibility(View.GONE);
+            }
+            return;
+        }
+        if (vekkiAiButton.getVisibility() != emojiButton.getVisibility()) {
+            vekkiAiButton.setVisibility(emojiButton.getVisibility());
+        }
+        if (vekkiAiButton.getAlpha() != emojiButton.getAlpha()) {
+            vekkiAiButton.setAlpha(emojiButton.getAlpha());
+        }
+        if (vekkiAiButton.getScaleX() != emojiButton.getScaleX()) {
+            vekkiAiButton.setScaleX(emojiButton.getScaleX());
+        }
+        if (vekkiAiButton.getScaleY() != emojiButton.getScaleY()) {
+            vekkiAiButton.setScaleY(emojiButton.getScaleY());
+        }
+        if (vekkiAiButton.getTranslationX() != emojiButton.getTranslationX()) {
+            vekkiAiButton.setTranslationX(emojiButton.getTranslationX());
+        }
+        if (vekkiAiButton.getTranslationY() != emojiButton.getTranslationY()) {
+            vekkiAiButton.setTranslationY(emojiButton.getTranslationY());
+        }
+    }
+
     public EmojiView getEmojiView() {
         return emojiView;
     }
@@ -10339,6 +10567,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         audioVideoSendButton.setColorFilter(new PorterDuffColorFilter(audioVideoButtonContainerForbidden ? getThemedColor(Theme.key_glass_defaultIcon) : Color.WHITE, PorterDuff.Mode.SRC_IN));
         emojiButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.SRC_IN));
         emojiButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector)));
+        updateVekkiAiButtonColors();
         deleteRichDraftButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.SRC_IN));
         deleteRichDraftButton.setBackground(Theme.createInsetRoundRectDrawable(getThemedColor(Theme.key_listSelector), dp(19), dp(1), dp(3)));
         sendOutlineView.setColorFilter(getThemedColor(Theme.key_telegram_color), PorterDuff.Mode.SRC_IN);
@@ -10686,10 +10915,11 @@ public class ChatActivityEnterView extends FrameLayout implements
             if (messageEditText != null) {
                 messageEditText.setVisibility(View.VISIBLE);
             }
-            emojiButton.setVisibility(View.VISIBLE);
+            emojiButton.setVisibility(textOnlyMode ? View.GONE : View.VISIBLE);
             deleteRichDraftButton.setVisibility(View.GONE);
             sendButton.setLocked(false);
         }
+        syncVekkiAiButtonState();
         updateButtons();
         if (wasActive != richDraftActive) {
             checkSendButton(true);
@@ -11202,6 +11432,16 @@ public class ChatActivityEnterView extends FrameLayout implements
         if (!isChat) {
             return;
         }
+        if (textOnlyMode) {
+            if (botButton != null) {
+                botButton.setVisibility(GONE);
+            }
+            if (botCommandsMenuButton != null) {
+                botCommandsMenuButton.setVisibility(GONE);
+            }
+            updateFieldRight(0);
+            return;
+        }
         if (parentFragment != null && !parentFragment.openAnimationEnded) {
             animated = false;
         }
@@ -11309,6 +11549,15 @@ public class ChatActivityEnterView extends FrameLayout implements
     }
 
     public void setButtons(MessageObject messageObject, boolean openBotKeyboard, boolean openKeyboard) {
+        if (textOnlyMode) {
+            botButtonsMessageObject = messageObject;
+            botReplyMarkup = null;
+            if (isPopupShowing() && currentPopupContentType == POPUP_CONTENT_BOT_KEYBOARD) {
+                showPopup(0, POPUP_CONTENT_BOT_KEYBOARD);
+            }
+            updateBotButton(false);
+            return;
+        }
         if (replyingMessageObject != null && replyingMessageObject == botButtonsMessageObject && replyingMessageObject != messageObject) {
             botMessageObject = messageObject;
             return;
@@ -12547,6 +12796,9 @@ public class ChatActivityEnterView extends FrameLayout implements
     }
 
     private void showPopup(int show, int contentType, boolean allowAnimation, boolean waitKeyboard) {
+        if (textOnlyMode && show == 1) {
+            return;
+        }
         if (show == 2) {
             return;
         }
@@ -12965,6 +13217,10 @@ public class ChatActivityEnterView extends FrameLayout implements
     }
 
     public void openKeyboardInternal() {
+        if (isPasscodeImeSuppressed()) {
+            suppressKeyboardForPasscode();
+            return;
+        }
         if (hasBotWebView() && botCommandsMenuIsShowing() || BaseFragment.hasSheets(parentFragment)) {
             return;
         }
@@ -13005,6 +13261,10 @@ public class ChatActivityEnterView extends FrameLayout implements
     }
 
     public void openKeyboard() {
+        if (isPasscodeImeSuppressed()) {
+            suppressKeyboardForPasscode();
+            return;
+        }
         if (hasBotWebView() && botCommandsMenuIsShowing() || BaseFragment.hasSheets(parentFragment)) {
             return;
         }
@@ -13019,6 +13279,21 @@ public class ChatActivityEnterView extends FrameLayout implements
 
     public void closeKeyboard() {
         AndroidUtilities.hideKeyboard(messageEditText);
+    }
+
+    private boolean isPasscodeImeSuppressed() {
+        return AndroidUtilities.isPasscodeImeSuppressed();
+    }
+
+    public void suppressKeyboardForPasscode() {
+        showKeyboardOnResume = false;
+        waitingForKeyboardOpen = false;
+        waitingForKeyboardOpenAfterAnimation = false;
+        AndroidUtilities.cancelRunOnUIThread(openKeyboardRunnable);
+        if (messageEditText != null) {
+            messageEditText.clearFocus();
+            AndroidUtilities.hideKeyboard(messageEditText);
+        }
     }
 
     public boolean isPopupShowing() {
@@ -14368,41 +14643,59 @@ public class ChatActivityEnterView extends FrameLayout implements
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int wasHeight = textFieldContainer.getMeasuredHeight();
-        if (botCommandsMenuButton != null && botCommandsMenuButton.getTag() != null) {
-            botCommandsMenuButton.measure(widthMeasureSpec, heightMeasureSpec);
-            ((MarginLayoutParams) emojiButton.getLayoutParams()).leftMargin = dp(10) + (botCommandsMenuButton == null ? 0 : botCommandsMenuButton.getMeasuredWidth());
-            if (deleteRichDraftButton != null) {
-                ((MarginLayoutParams) deleteRichDraftButton.getLayoutParams()).leftMargin = dp(10) + (botCommandsMenuButton == null ? 0 : botCommandsMenuButton.getMeasuredWidth());
-            }
-            if (messageEditText != null) {
-                ((MarginLayoutParams) messageEditText.getLayoutParams()).leftMargin = dp(57) + (botCommandsMenuButton == null ? 0 : botCommandsMenuButton.getMeasuredWidth());
-            }
-            if (richDraftPreview != null) {
-                ((MarginLayoutParams) richDraftPreview.getLayoutParams()).leftMargin = dp(57) + (botCommandsMenuButton == null ? 0 : botCommandsMenuButton.getMeasuredWidth());
-            }
-        } else if (senderSelectView != null && senderSelectView.getVisibility() == View.VISIBLE) {
-            int width = senderSelectView.getLayoutParams().width, height = senderSelectView.getLayoutParams().height;
-            senderSelectView.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY));
-            ((MarginLayoutParams) emojiButton.getLayoutParams()).leftMargin = dp(7) + width;
-            if (deleteRichDraftButton != null) {
-                ((MarginLayoutParams) deleteRichDraftButton.getLayoutParams()).leftMargin = dp(7) + width;
-            }
-            if (messageEditText != null) {
-                ((MarginLayoutParams) messageEditText.getLayoutParams()).leftMargin = dp(54) + width;
-            }
-            if (richDraftPreview != null) {
-                ((MarginLayoutParams) richDraftPreview.getLayoutParams()).leftMargin = dp(54) + width;
-            }
-        } else {
+        final int vekkiAiButtonOffset = getVekkiAiButtonOffset();
+        if (textOnlyMode) {
+            ((MarginLayoutParams) vekkiAiButton.getLayoutParams()).leftMargin = dp(3);
             ((MarginLayoutParams) emojiButton.getLayoutParams()).leftMargin = dp(3);
             if (deleteRichDraftButton != null) {
                 ((MarginLayoutParams) deleteRichDraftButton.getLayoutParams()).leftMargin = dp(3);
             }
             if (messageEditText != null) {
-                ((MarginLayoutParams) messageEditText.getLayoutParams()).leftMargin = dp(50);
+                ((MarginLayoutParams) messageEditText.getLayoutParams()).leftMargin = dp(12);
             }
             if (richDraftPreview != null) {
-                ((MarginLayoutParams) richDraftPreview.getLayoutParams()).leftMargin = dp(50);
+                ((MarginLayoutParams) richDraftPreview.getLayoutParams()).leftMargin = dp(12);
+            }
+        } else if (botCommandsMenuButton != null && botCommandsMenuButton.getTag() != null) {
+            botCommandsMenuButton.measure(widthMeasureSpec, heightMeasureSpec);
+            final int buttonsLeft = dp(10) + (botCommandsMenuButton == null ? 0 : botCommandsMenuButton.getMeasuredWidth());
+            ((MarginLayoutParams) vekkiAiButton.getLayoutParams()).leftMargin = buttonsLeft;
+            ((MarginLayoutParams) emojiButton.getLayoutParams()).leftMargin = buttonsLeft + vekkiAiButtonOffset;
+            if (deleteRichDraftButton != null) {
+                ((MarginLayoutParams) deleteRichDraftButton.getLayoutParams()).leftMargin = buttonsLeft + vekkiAiButtonOffset;
+            }
+            if (messageEditText != null) {
+                ((MarginLayoutParams) messageEditText.getLayoutParams()).leftMargin = dp(57) + (botCommandsMenuButton == null ? 0 : botCommandsMenuButton.getMeasuredWidth()) + vekkiAiButtonOffset;
+            }
+            if (richDraftPreview != null) {
+                ((MarginLayoutParams) richDraftPreview.getLayoutParams()).leftMargin = dp(57) + (botCommandsMenuButton == null ? 0 : botCommandsMenuButton.getMeasuredWidth()) + vekkiAiButtonOffset;
+            }
+        } else if (senderSelectView != null && senderSelectView.getVisibility() == View.VISIBLE) {
+            int width = senderSelectView.getLayoutParams().width, height = senderSelectView.getLayoutParams().height;
+            senderSelectView.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY));
+            final int buttonsLeft = dp(7) + width;
+            ((MarginLayoutParams) vekkiAiButton.getLayoutParams()).leftMargin = buttonsLeft;
+            ((MarginLayoutParams) emojiButton.getLayoutParams()).leftMargin = buttonsLeft + vekkiAiButtonOffset;
+            if (deleteRichDraftButton != null) {
+                ((MarginLayoutParams) deleteRichDraftButton.getLayoutParams()).leftMargin = buttonsLeft + vekkiAiButtonOffset;
+            }
+            if (messageEditText != null) {
+                ((MarginLayoutParams) messageEditText.getLayoutParams()).leftMargin = dp(54) + width + vekkiAiButtonOffset;
+            }
+            if (richDraftPreview != null) {
+                ((MarginLayoutParams) richDraftPreview.getLayoutParams()).leftMargin = dp(54) + width + vekkiAiButtonOffset;
+            }
+        } else {
+            ((MarginLayoutParams) vekkiAiButton.getLayoutParams()).leftMargin = dp(3);
+            ((MarginLayoutParams) emojiButton.getLayoutParams()).leftMargin = dp(3) + vekkiAiButtonOffset;
+            if (deleteRichDraftButton != null) {
+                ((MarginLayoutParams) deleteRichDraftButton.getLayoutParams()).leftMargin = dp(3) + vekkiAiButtonOffset;
+            }
+            if (messageEditText != null) {
+                ((MarginLayoutParams) messageEditText.getLayoutParams()).leftMargin = dp(50) + vekkiAiButtonOffset;
+            }
+            if (richDraftPreview != null) {
+                ((MarginLayoutParams) richDraftPreview.getLayoutParams()).leftMargin = dp(50) + vekkiAiButtonOffset;
             }
         }
         updateBotCommandsMenuContainerTopPadding();
@@ -14456,6 +14749,9 @@ public class ChatActivityEnterView extends FrameLayout implements
     }
 
     private void beginDelayedTransition() {
+        if (vekkiAiButton != null) {
+            animationParamsX.put(vekkiAiButton, vekkiAiButton.getX());
+        }
         animationParamsX.put(emojiButton, emojiButton.getX());
         if (messageEditText != null) {
             animationParamsX.put(messageEditText, messageEditText.getX());
@@ -14570,6 +14866,9 @@ public class ChatActivityEnterView extends FrameLayout implements
         emojiButtonPaddingAlpha = progress;
         updateEmojiButtonParams();
         emojiButton.setTranslationX(-leftPadding);
+        if (vekkiAiButton != null) {
+            vekkiAiButton.setTranslationX(-leftPadding);
+        }
         messageTextPaddingTranslationX = -leftPadding - (messageEditText == null ? 0 : dp(40) + (senderSelectView != null && senderSelectView.getVisibility() == View.VISIBLE ? dp(18) : 0)) * (1f - progress);
         if (recordDeleteImageView != null) {
             recordDeleteImageView.setTranslationX(-leftPadding);
@@ -14662,6 +14961,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         emojiButton.setScaleX(emojiButtonPaddingScale * emojiButtonScale);
         emojiButton.setScaleY(emojiButtonPaddingScale * emojiButtonScale);
         emojiButton.setAlpha(emojiButtonPaddingAlpha * emojiButtonAlpha);
+        syncVekkiAiButtonState();
     }
 
     public void setOverrideHint(CharSequence overrideHint) {

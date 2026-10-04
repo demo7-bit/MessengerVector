@@ -24,7 +24,7 @@ public class OpenChatReceiver extends Activity {
             finish();
             return;
         }
-        if (intent.getAction() == null || !intent.getAction().startsWith("com.tmessages.openchat")) {
+        if (intent.getAction() == null || !intent.getAction().startsWith(ApplicationLoader.getApplicationId() + ".openchat")) {
             finish();
             return;
         }

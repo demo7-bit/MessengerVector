@@ -38,6 +38,7 @@ public class CropRotationWheel extends FrameLayout {
 
     private Paint whitePaint;
     private Paint bluePaint;
+    private final Theme.ResourcesProvider resourcesProvider;
 
     private ImageView aspectRatioButton;
     private ImageView rotation90Button;
@@ -51,9 +52,18 @@ public class CropRotationWheel extends FrameLayout {
     private float prevX;
 
     private RotationWheelListener rotationListener;
+    private boolean mirrored;
+    private boolean rotated;
+    private boolean aspectLocked;
+    private int accentColor;
 
     public CropRotationWheel(Context context) {
+        this(context, null);
+    }
+
+    public CropRotationWheel(Context context, Theme.ResourcesProvider resourcesProvider) {
         super(context);
+        this.resourcesProvider = resourcesProvider;
 
         tempRect = new RectF(0, 0, 0, 0);
 
@@ -65,7 +75,7 @@ public class CropRotationWheel extends FrameLayout {
 
         bluePaint = new Paint();
         bluePaint.setStyle(Paint.Style.FILL);
-        bluePaint.setColor(0xff51bdf3);
+        bluePaint.setColor(accentColor = getAccentColor());
         bluePaint.setAlpha(255);
         bluePaint.setAntiAlias(true);
 
@@ -124,11 +134,13 @@ public class CropRotationWheel extends FrameLayout {
     }
 
     public void setMirrored(boolean value) {
-        mirrorButton.setColorFilter(value ? new PorterDuffColorFilter(Theme.getColor(Theme.key_chat_editMediaButton), PorterDuff.Mode.MULTIPLY) : null);
+        mirrored = value;
+        mirrorButton.setColorFilter(value ? new PorterDuffColorFilter(getAccentColor(), PorterDuff.Mode.MULTIPLY) : null);
     }
 
     public void setRotated(boolean value) {
-        rotation90Button.setColorFilter(value ? new PorterDuffColorFilter(Theme.getColor(Theme.key_chat_editMediaButton), PorterDuff.Mode.MULTIPLY) : null);
+        rotated = value;
+        rotation90Button.setColorFilter(value ? new PorterDuffColorFilter(getAccentColor(), PorterDuff.Mode.MULTIPLY) : null);
     }
 
     @Override
@@ -164,7 +176,24 @@ public class CropRotationWheel extends FrameLayout {
     }
 
     public void setAspectLock(boolean enabled) {
-        aspectRatioButton.setColorFilter(enabled ? new PorterDuffColorFilter(0xff51bdf3, PorterDuff.Mode.MULTIPLY) : null);
+        aspectLocked = enabled;
+        aspectRatioButton.setColorFilter(enabled ? new PorterDuffColorFilter(getAccentColor(), PorterDuff.Mode.MULTIPLY) : null);
+    }
+
+    private int getAccentColor() {
+        return Theme.getColor(Theme.key_chat_editMediaButton, resourcesProvider);
+    }
+
+    private void updateAccentColor() {
+        int color = getAccentColor();
+        if (accentColor == color) {
+            return;
+        }
+        accentColor = color;
+        bluePaint.setColor(color);
+        setMirrored(mirrored);
+        setRotated(rotated);
+        setAspectLock(aspectLocked);
     }
 
     @Override
@@ -221,6 +250,7 @@ public class CropRotationWheel extends FrameLayout {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+        updateAccentColor();
 
         int width = getWidth();
         int height = getHeight();

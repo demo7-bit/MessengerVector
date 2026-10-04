@@ -54,7 +54,7 @@ public class ThemeColors {
         defaultColors[key_dialogRoundCheckBoxCheck] = 0xffffffff;
         defaultColors[key_dialog_inlineProgressBackground] = 0xf6f0f2f5;
         defaultColors[key_dialog_inlineProgress] = 0xff6b7378;
-        defaultColors[key_dialogSearchBackground] = 0xfff2f4f5;
+        defaultColors[key_dialogSearchBackground] = 0xfff6f4f3;
         defaultColors[key_dialogSearchHint] = 0xff98a0a7;
         defaultColors[key_dialogSearchIcon] = 0xffa1a8af;
         defaultColors[key_dialogSearchText] = 0xff222222;
@@ -76,7 +76,7 @@ public class ThemeColors {
         defaultColors[key_share_linkText] = 0xFF222222;
         defaultColors[key_share_linkBackground] = 0x0F000000;
 
-        defaultColors[key_windowBackgroundWhite] = 0xffffffff;
+        defaultColors[key_windowBackgroundWhite] = 0xfffafafa;
         defaultColors[key_windowBackgroundUnchecked] = 0xff96A2AD;
         defaultColors[key_windowBackgroundChecked] = 0xff229AF0;
         defaultColors[key_windowBackgroundCheckText] = 0xffffffff;
@@ -130,11 +130,11 @@ public class ThemeColors {
         defaultColors[key_settings_listSelector] = 0x1d000010;
         defaultColors[key_radioBackground] = 0xffb3b3b3;
         defaultColors[key_radioBackgroundChecked] = TELEGRAM_COLOR;
-        defaultColors[key_windowBackgroundGray] = 0xffF1F1F3;
+        defaultColors[key_windowBackgroundGray] = 0xffF4F4F6;
         defaultColors[key_windowBackgroundGrayShadow] = 0xff000000;
         defaultColors[key_emptyListPlaceholder] = 0xff73787b;
-        defaultColors[key_divider] = 0xffd9d9d9;
-        defaultColors[key_graySection] = 0xfff5f5f5;
+        defaultColors[key_divider] = 0xffE7E7EA;
+        defaultColors[key_graySection] = 0xffF6F6F8;
         defaultColors[key_graySectionText] = 0xff82878A;
         defaultColors[key_contextProgressInner1] = 0xffbfdff6;
         defaultColors[key_contextProgressOuter1] = 0xff2b96e2;
@@ -991,6 +991,7 @@ public class ThemeColors {
         colorKeysMap.put(key_avatar_background2Cyan, "avatar_background2Cyan");
         colorKeysMap.put(key_avatar_background2Blue, "avatar_background2Blue");
         colorKeysMap.put(key_avatar_background2Pink, "avatar_background2Pink");
+        colorKeysMap.put(key_avatar_backgroundGray, "avatar_backgroundGray");
         colorKeysMap.put(key_avatar_backgroundInProfileBlue, "avatar_backgroundInProfileBlue");
         colorKeysMap.put(key_avatar_backgroundActionBarBlue, "avatar_backgroundActionBarBlue");
         colorKeysMap.put(key_avatar_actionBarSelectorBlue, "avatar_actionBarSelectorBlue");

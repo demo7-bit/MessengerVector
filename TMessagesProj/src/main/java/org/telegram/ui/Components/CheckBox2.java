@@ -20,6 +20,7 @@ public class CheckBox2 extends View {
     private CheckBoxBase checkBoxBase;
     Drawable iconDrawable;
     int currentIcon;
+    private Paint iconBorderPaint;
 
     public CheckBox2(Context context, int sz) {
         this(context, sz, null);
@@ -113,11 +114,13 @@ public class CheckBox2 extends View {
             int cy = getMeasuredHeight() >> 1;
             iconDrawable.setBounds(cx - iconDrawable.getIntrinsicWidth() / 2, cy - iconDrawable.getIntrinsicHeight() / 2, cx + iconDrawable.getIntrinsicWidth() / 2, cy + iconDrawable.getIntrinsicHeight() / 2);
             iconDrawable.draw(canvas);
-            Paint paint = new Paint();
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(AndroidUtilities.dp(1.2f));
-            paint.setColor(Theme.getColor(Theme.key_switch2Track));
-            canvas.drawCircle(cx, cy, cx - AndroidUtilities.dp(1.5f), paint);
+            if (iconBorderPaint == null) {
+                iconBorderPaint = new Paint();
+                iconBorderPaint.setStyle(Paint.Style.STROKE);
+                iconBorderPaint.setStrokeWidth(AndroidUtilities.dp(1.2f));
+            }
+            iconBorderPaint.setColor(Theme.getColor(Theme.key_switch2Track));
+            canvas.drawCircle(cx, cy, cx - AndroidUtilities.dp(1.5f), iconBorderPaint);
         } else {
             checkBoxBase.draw(canvas);
         }

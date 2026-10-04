@@ -1412,7 +1412,7 @@ public class PeerStoriesView extends SizeNotifierFrameLayout implements Notifica
                                 popupLayout.getSwipeBack().closeForeground();
                             }
                         }
-                    });
+                    }, resourcesProvider);
                     speedLayout.update(StoryViewer.currentSpeed, true);
 
                     speedItem = new ActionBarMenuSubItem(getContext(), false, false, false, resourcesProvider);

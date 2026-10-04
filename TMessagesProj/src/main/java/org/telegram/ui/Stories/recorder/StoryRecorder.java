@@ -181,7 +181,7 @@ import java.util.List;
 
 public class StoryRecorder implements NotificationCenter.NotificationCenterDelegate {
 
-    private final Theme.ResourcesProvider resourcesProvider = new DarkThemeResourceProvider();
+    private final Theme.ResourcesProvider resourcesProvider = new DarkThemeResourceProvider(true);
 
     private final Activity activity;
     private final int currentAccount;
@@ -3122,7 +3122,7 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
         });
         navbarContainer.addView(coverButton, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.FILL, 10, 10, 10, 10));
 
-        previewButtons = new PreviewButtons(context);
+        previewButtons = new PreviewButtons(context, resourcesProvider);
         previewButtons.setVisibility(View.GONE);
         previewButtons.setOnClickListener((Integer btn) -> {
             if (outputEntry == null || captionEdit.isRecording()) {
@@ -5183,7 +5183,7 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
                 }
             }
             previewButtons.setButtonVisible(PreviewButtons.BUTTON_ADJUST, outputEntry == null || (!outputEntry.isRepostMessage || outputEntry.isVideo) && !outputEntry.isCollage());
-            previewButtons.setButtonVisible(PreviewButtons.BUTTON_CROP, BuildVars.DEBUG_PRIVATE_VERSION && outputEntry != null && !outputEntry.isRepostMessage && !outputEntry.isCollage());
+            previewButtons.setButtonVisible(PreviewButtons.BUTTON_CROP, false);
             previewButtons.setShareEnabled(!videoError && !captionEdit.isCaptionOverLimit() && (!MessagesController.getInstance(currentAccount).getStoriesController().hasStoryLimit(getCount()) || (outputEntry != null && (outputEntry.isEdit || outputEntry.botId != 0))));
             muteButton.setImageResource(outputEntry != null && outputEntry.muted ? R.drawable.media_unmute : R.drawable.media_mute);
             previewView.setVisibility(View.VISIBLE);

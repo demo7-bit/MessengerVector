@@ -563,7 +563,7 @@ public class StoryPrivacyBottomSheet extends BottomSheet implements Notification
                                     isRtmpStream = true;
                                     sheet[0].dismiss();
                                     updateItems(true);
-                                }, new DarkThemeResourceProvider());
+                                }, new DarkThemeResourceProvider(true));
                                 sheet[0].show();
                             } else if (err != null) {
                                 BulletinFactory.of(container, resourcesProvider).showForError(err, true);

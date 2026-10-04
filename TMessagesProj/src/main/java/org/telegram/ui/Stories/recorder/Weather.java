@@ -316,7 +316,7 @@ public class Weather {
                 return;
             }
 
-            final AlertDialog progressDialog = withProgress ? new AlertDialog(activity, AlertDialog.ALERT_TYPE_SPINNER, new DarkThemeResourceProvider()) : null;
+            final AlertDialog progressDialog = withProgress ? new AlertDialog(activity, AlertDialog.ALERT_TYPE_SPINNER, new DarkThemeResourceProvider(true)) : null;
             if (withProgress) progressDialog.showDelayed(200);
             Runnable cancel = fetch(location.getLatitude(), location.getLongitude(), weather -> {
                 if (withProgress) {

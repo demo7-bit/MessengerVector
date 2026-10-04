@@ -29,13 +29,14 @@ import me.vkryl.android.animator.FactorAnimator;
 public class ChatActivitySideControlsButtonsLayout extends FrameLayout implements FactorAnimator.Target {
     public static final int BUTTON_ATTACH = 0;
     public static final int BUTTON_PAGE_DOWN = 1;
-    public static final int BUTTON_MENTION = 2;
-    public static final int BUTTON_REACTIONS = 3;
-    public static final int BUTTON_POLL_VOTES = 4;
-    public static final int BUTTON_SEARCH_DOWN = 5;
-    public static final int BUTTON_SEARCH_UP = 6;
+    public static final int BUTTON_VEKKI_AI = 2;
+    public static final int BUTTON_MENTION = 3;
+    public static final int BUTTON_REACTIONS = 4;
+    public static final int BUTTON_POLL_VOTES = 5;
+    public static final int BUTTON_SEARCH_DOWN = 6;
+    public static final int BUTTON_SEARCH_UP = 7;
 
-    private static final int BUTTONS_COUNT = 7;
+    private static final int BUTTONS_COUNT = 8;
 
     private static final int ANIMATOR_ID_VISIBILITY = 1;
     private static final int ANIMATOR_ID_COUNTER_VISIBILITY = 2;
@@ -43,6 +44,7 @@ public class ChatActivitySideControlsButtonsLayout extends FrameLayout implement
     private static final @DrawableRes int[] buttonIcons = new int[] {
         R.drawable.msg_input_attach2,
         R.drawable.pagedown,
+        R.drawable.vekki_ai,
         R.drawable.mentionbutton,
         R.drawable.reactionbutton,
         R.drawable.menu_poll_notify,
@@ -53,6 +55,7 @@ public class ChatActivitySideControlsButtonsLayout extends FrameLayout implement
     private final String[] buttonDescriptions = new String[] {
         LocaleController.getString(R.string.AttachMenu),
         LocaleController.getString(R.string.AccDescrPageDown),
+        LocaleController.getString(R.string.VekkiAIUnreadSummaryTitle),
         LocaleController.getString(R.string.AccDescrMentionDown),
         LocaleController.getString(R.string.AccDescrReactionMentionDown),
         LocaleController.getString(R.string.AccDescrPollVotesMentionDown),
@@ -219,6 +222,9 @@ public class ChatActivitySideControlsButtonsLayout extends FrameLayout implement
                 colorProvider,
                 buttonIcons[buttonId]
             );
+            if (buttonId == BUTTON_VEKKI_AI) {
+                button.setIconPadding(0);
+            }
 
             button.setPivotX(dp(size / 2f));
             button.setPivotY(dp(size / 2f + 8));

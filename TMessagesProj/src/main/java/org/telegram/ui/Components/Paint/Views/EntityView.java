@@ -22,6 +22,7 @@ import com.google.zxing.common.detector.MathUtils;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.Utilities;
+import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.AnimatedFloat;
 import org.telegram.ui.Components.ButtonBounce;
 import org.telegram.ui.Components.CubicBezierInterpolator;
@@ -827,7 +828,7 @@ public class EntityView extends FrameLayout {
             paint.setPathEffect(new DashPathEffect(new float[]{dp(10), dp(10)}, .5f));
             paint.setShadowLayer(AndroidUtilities.dpf2(0.75f), 0, 0, 0x50000000);
 
-            dotPaint.setColor(0xff1A9CFF);
+            dotPaint.setColor(Theme.getColor(Theme.key_chat_editMediaButton));
             dotStrokePaint.setColor(0xffffffff);
             dotStrokePaint.setStyle(Paint.Style.STROKE);
             dotStrokePaint.setStrokeWidth(AndroidUtilities.dpf2(2.66f));

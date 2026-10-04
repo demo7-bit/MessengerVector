@@ -1270,7 +1270,7 @@ public class PopupNotificationActivity extends Activity implements NotificationC
             intent.putExtra("chatId", -dialogId);
         }
         intent.putExtra("currentAccount", currentMessageObject.currentAccount);
-        intent.setAction("com.tmessages.openchat" + Math.random() + Integer.MAX_VALUE);
+        intent.setAction(ApplicationLoader.getApplicationId() + ".openchat" + Math.random() + Integer.MAX_VALUE);
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         onFinish();

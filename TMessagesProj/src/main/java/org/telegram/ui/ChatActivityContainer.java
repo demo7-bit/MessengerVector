@@ -48,6 +48,26 @@ public class ChatActivityContainer extends FrameLayout {
             protected void onSearchLoadingUpdate(boolean loading) {
                 ChatActivityContainer.this.onSearchLoadingUpdate(loading);
             }
+
+            @Override
+            protected boolean allowPresentFragment() {
+                return ChatActivityContainer.this.allowChatActivityNavigation();
+            }
+
+            @Override
+            public void finishFragment() {
+                if (!ChatActivityContainer.this.onChatActivityFinishRequested()) {
+                    super.finishFragment();
+                }
+            }
+
+            @Override
+            public boolean finishFragment(boolean animated) {
+                if (ChatActivityContainer.this.onChatActivityFinishRequested()) {
+                    return true;
+                }
+                return super.finishFragment(animated);
+            }
         };
         chatActivity.isInsideContainer = true;
     }
@@ -61,6 +81,17 @@ public class ChatActivityContainer extends FrameLayout {
 
     }
 
+    protected boolean allowChatActivityNavigation() {
+        return true;
+    }
+
+    protected boolean onChatActivityFinishRequested() {
+        return false;
+    }
+
+    private boolean fragmentCreated;
+    private boolean destroyed;
+
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
@@ -69,9 +100,13 @@ public class ChatActivityContainer extends FrameLayout {
     }
 
     protected void initChatActivity() {
+        if (fragmentCreated || destroyed) {
+            return;
+        }
         if (!chatActivity.onFragmentCreate()) {
             return;
         }
+        fragmentCreated = true;
 
         fragmentView = chatActivity.fragmentView;
         chatActivity.setParentLayout(parentLayout);
@@ -96,17 +131,46 @@ public class ChatActivityContainer extends FrameLayout {
 
     private boolean isActive = true;
     public void onPause() {
+        onPause(false);
+    }
+
+    public void onPause(boolean preserveInputFocus) {
+        if (!isActive) {
+            return;
+        }
         isActive = false;
         if (fragmentView != null) {
+            chatActivity.setPreserveInputFocusOnPauseOnce(preserveInputFocus);
             chatActivity.onPause();
         }
     }
 
     public void onResume() {
+        if (destroyed || isActive) {
+            return;
+        }
         isActive = true;
         if (fragmentView != null) {
             chatActivity.onResume();
         }
+    }
+
+    public void destroy() {
+        if (destroyed) {
+            return;
+        }
+        destroyed = true;
+        if (fragmentCreated) {
+            if (isActive && fragmentView != null) {
+                chatActivity.onPause();
+            }
+            isActive = false;
+            chatActivity.onFragmentDestroy();
+            chatActivity.setParentLayout(null);
+        }
+        fragmentCreated = false;
+        fragmentView = null;
+        removeAllViews();
     }
 
     @Override

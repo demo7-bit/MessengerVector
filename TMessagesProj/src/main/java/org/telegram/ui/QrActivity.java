@@ -51,7 +51,6 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.collection.ArrayMap;
@@ -72,7 +71,6 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.ChatObject;
-import org.telegram.messenger.ChatThemeController;
 import org.telegram.messenger.ContactsController;
 import org.telegram.messenger.Emoji;
 import org.telegram.messenger.FileLog;
@@ -85,7 +83,6 @@ import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
 import org.telegram.messenger.Utilities;
 import org.telegram.messenger.browser.Browser;
-import org.telegram.tgnet.ResultCallback;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBarLayout;
 import org.telegram.ui.ActionBar.AlertDialog;
@@ -121,11 +118,18 @@ import java.util.List;
 
 public class QrActivity extends BaseFragment {
 
+    private static final int VECTOR_ORANGE = 0xFFEB5E19;
+    private static final int VECTOR_ORANGE_PRESSED = 0xFFD94F14;
+    private static final int[] VECTOR_QR_COLORS = new int[]{
+            VECTOR_ORANGE, 0xFFF58A4A, 0xFFB83C0D, VECTOR_ORANGE_PRESSED
+    };
+    private static final int[] VECTOR_QR_BACKGROUND_COLORS = new int[]{
+            VECTOR_ORANGE, 0xFFF58A4A, 0xFFC9470F, VECTOR_ORANGE_PRESSED
+    };
     private static final ArrayMap<String, int[]> qrColorsMap = new ArrayMap<>();
-    private static List<EmojiThemes> cachedThemes;
 
     static {
-        qrColorsMap.put("\uD83C\uDFE0d",    new int[]{ 0xFF71B654, 0xFF2C9077, 0xFF9ABB3E, 0xFF68B55E });
+        qrColorsMap.put("\uD83C\uDFE0d",    VECTOR_QR_COLORS);
         qrColorsMap.put("\uD83D\uDC25d",    new int[]{ 0xFF43A371, 0xFF8ABD4C, 0xFF9DB139, 0xFF85B950 });
         qrColorsMap.put("⛄d",              new int[]{ 0xFF66A1FF, 0xFF59B5EE, 0xFF41BAD2, 0xFF8A97FF });
         qrColorsMap.put("\uD83D\uDC8Ed",    new int[]{ 0xFF5198F5, 0xFF4BB7D2, 0xFFAD79FB, 0xFFDF86C7 });
@@ -134,7 +138,7 @@ public class QrActivity extends BaseFragment {
         qrColorsMap.put("\uD83D\uDC9Cd",    new int[]{ 0xFFEE597E, 0xFFE35FB2, 0xFFAD69F2, 0xFFFF9257 });
         qrColorsMap.put("\uD83C\uDF84d",    new int[]{ 0xFFEC7046, 0xFFF79626, 0xFFE3761C, 0xFFF4AA2A });
         qrColorsMap.put("\uD83C\uDFAEd",    new int[]{ 0xFF19B3D2, 0xFFDC62F4, 0xFFE64C73, 0xFFECA222 });
-        qrColorsMap.put("\uD83C\uDFE0n",    new int[]{ 0xFF157FD1, 0xFF4A6CF2, 0xFF1876CD, 0xFF2CA6CE });
+        qrColorsMap.put("\uD83C\uDFE0n",    VECTOR_QR_COLORS);
         qrColorsMap.put("\uD83D\uDC25n",    new int[]{ 0xFF57A518, 0xFF1E7650, 0xFF6D9B17, 0xFF3FAB55 });
         qrColorsMap.put("⛄n",              new int[]{ 0xFF2B6EDA, 0xFF2F7CB6, 0xFF1DA6C9, 0xFF6B7CFF });
         qrColorsMap.put("\uD83D\uDC8En",    new int[]{ 0xFFB256B8, 0xFF6F52FF, 0xFF249AC2, 0xFF347AD5 });
@@ -173,8 +177,6 @@ public class QrActivity extends BaseFragment {
     private long chatId;
     private int prevSystemUiVisibility;
     private int selectedPosition = -1;
-
-    private static boolean firstOpen = true;
 
     public QrActivity(Bundle args) {
         super(args);
@@ -219,8 +221,10 @@ public class QrActivity extends BaseFragment {
                     ignoreLayout = true;
                     themeLayout.setPadding(insets.left, dp(8), insets.right, insets.bottom);
                     ignoreLayout = false;
+                    // The hidden theme carousel no longer contributes an intrinsic width.
+                    // Keep the sheet itself edge-to-edge and use its padding for system insets.
                     themeLayout.measure(
-                        MeasureSpec.makeMeasureSpec(width, MeasureSpec.AT_MOST),
+                        MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
                         MeasureSpec.makeMeasureSpec(height + insets.bottom, MeasureSpec.AT_MOST));
                     qrView.measure(
                         MeasureSpec.makeMeasureSpec(dp(260), MeasureSpec.EXACTLY),
@@ -305,7 +309,7 @@ public class QrActivity extends BaseFragment {
         backgroundView = new View(context) {
             @Override
             protected void onDraw(Canvas canvas) {
-                canvas.drawColor(isCurrentThemeDark ? 0xFF121A2A : 0xFF9BC38F);
+                canvas.drawColor(VECTOR_QR_BACKGROUND_COLORS[0]);
                 if (prevMotionDrawable != null) {
                     prevMotionDrawable.setBounds(0, 0, getWidth(), getHeight());
                 }
@@ -317,6 +321,9 @@ public class QrActivity extends BaseFragment {
                 super.onDraw(canvas);
             }
         };
+        currMotionDrawable.setColors(VECTOR_QR_BACKGROUND_COLORS[0], VECTOR_QR_BACKGROUND_COLORS[1], VECTOR_QR_BACKGROUND_COLORS[2], VECTOR_QR_BACKGROUND_COLORS[3]);
+        currMotionDrawable.setCallback(backgroundView);
+        currMotionDrawable.setParentView(backgroundView);
         rootLayout.addView(backgroundView);
 
         AvatarDrawable avatarDrawable = null;
@@ -358,7 +365,7 @@ public class QrActivity extends BaseFragment {
         }
 
         qrView = new QrView(context);
-        qrView.setColors(0xFF71B654, 0xFF2C9077, 0xFF9ABB3E, 0xFF68B55E);
+        qrView.setColors(VECTOR_QR_COLORS[0], VECTOR_QR_COLORS[1], VECTOR_QR_COLORS[2], VECTOR_QR_COLORS[3]);
         if (link == null && username != null) {
             link = "https://" + MessagesController.getInstance(currentAccount).linkPrefix + "/" + username;
         }
@@ -403,7 +410,7 @@ public class QrActivity extends BaseFragment {
         themeLayout = themesViewController.rootLayout;
 
         themesViewController.onCreate();
-        themesViewController.setItemSelectedListener((theme, position) -> QrActivity.this.onItemSelected(theme, position, true));
+        themesViewController.setSingleThemeMode();
         themesViewController.titleView.setText(getString(R.string.QrCode));
         themesViewController.progressView.setViewType(FlickerLoadingView.QR_TYPE);
         themesViewController.shareButton.setOnClickListener(v -> {
@@ -439,25 +446,6 @@ public class QrActivity extends BaseFragment {
                 }
             }, 17);
         }, 25);
-
-        fragmentView.postDelayed(() -> {
-            firstOpen = false;
-            if (cachedThemes == null || cachedThemes.isEmpty()) {
-                ChatThemeController.getInstance(currentAccount).requestAllChatThemes(new ResultCallback<List<EmojiThemes>>() {
-                    @Override
-                    public void onComplete(List<EmojiThemes> result) {
-                        onDataLoaded(result);
-                        cachedThemes = result;
-                    }
-                    @Override
-                    public void onError(TLRPC.TL_error error) {
-                        Toast.makeText(getParentActivity(), error.text, Toast.LENGTH_SHORT).show();
-                    }
-                }, true);
-            } else {
-                onDataLoaded(cachedThemes);
-            }
-        }, firstOpen ? 250 : 0);
 
         prevSystemUiVisibility = getParentActivity().getWindow().getDecorView().getSystemUiVisibility();
         applyScreenSettings();
@@ -630,8 +618,6 @@ public class QrActivity extends BaseFragment {
         final EmojiThemes prevTheme = currentTheme;
         final boolean isDarkTheme = isCurrentThemeDark;
         currentTheme = newTheme;
-        EmojiThemes.ThemeItem themeItem = currentTheme.getThemeItem(isDarkTheme ? 1 : 0);
-
         float duration = 1f;
         if (patternAlphaAnimator != null) {
 //            from = (float) patternAlphaAnimator.getAnimatedValue();
@@ -645,7 +631,7 @@ public class QrActivity extends BaseFragment {
 
         currMotionDrawable = new MotionBackgroundDrawable();
         currMotionDrawable.setCallback(backgroundView);
-        currMotionDrawable.setColors(themeItem.patternBgColor, themeItem.patternBgGradientColor1, themeItem.patternBgGradientColor2, themeItem.patternBgGradientColor3);
+        currMotionDrawable.setColors(VECTOR_QR_BACKGROUND_COLORS[0], VECTOR_QR_BACKGROUND_COLORS[1], VECTOR_QR_BACKGROUND_COLORS[2], VECTOR_QR_BACKGROUND_COLORS[3]);
         currMotionDrawable.setParentView(backgroundView);
         currMotionDrawable.setPatternAlpha(1f);
         currMotionDrawable.setIndeterminateAnimation(true);
@@ -912,6 +898,15 @@ public class QrActivity extends BaseFragment {
 
         @Override
         public int getColor(int key) {
+            // The QR action accent is product branding, not part of the asynchronously
+            // loaded EmojiThemes palette. Keeping the override in this local provider
+            // makes both the initial draw and every theme-animation pass resolve to the
+            // same color without affecting this key anywhere else in the app.
+            if (key == Theme.key_featuredStickers_addButton) {
+                return VECTOR_ORANGE;
+            } else if (key == Theme.key_featuredStickers_addButtonPressed) {
+                return VECTOR_ORANGE_PRESSED;
+            }
             return colors != null ? colors.get(key) : Theme.getColor(key);
         }
     }
@@ -1428,6 +1423,7 @@ public class QrActivity extends BaseFragment {
         private float changeDayNightViewProgress;
         protected boolean isLightDarkChangeAnimation;
         private boolean prevIsPortrait;
+        private boolean singleThemeMode;
 
         public ThemeListViewController(BaseFragment fragment, Window window) {
             this.fragment = fragment;
@@ -1448,7 +1444,7 @@ public class QrActivity extends BaseFragment {
                 private final Rect backgroundPadding = new Rect();
 
                 {
-                    backgroundPaint.setColor(fragment.getThemedColor(Theme.key_windowBackgroundWhite));
+                    backgroundPaint.setColor(fragment.getThemedColor(Theme.key_dialogBackground));
                     backgroundDrawable.setCallback(this);
                     backgroundDrawable.getPadding(backgroundPadding);
                 }
@@ -1457,6 +1453,25 @@ public class QrActivity extends BaseFragment {
                 protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
                     boolean isPortrait = isFragmentViewPortrait;
                     int recyclerPadding = dp(12);
+                    if (singleThemeMode) {
+                        if (isPortrait) {
+                            shareButton.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.TOP, 16, 52, 16, 0));
+                            if (scanButtonWrap != null) {
+                                scanButtonWrap.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.TOP, 16, 108, 16, 0));
+                            }
+                            int panelHeight = dp(scanButtonWrap != null ? 172 : 116) + getPaddingTop() + getPaddingBottom();
+                            super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(panelHeight, MeasureSpec.EXACTLY));
+                        } else {
+                            if (scanButtonWrap != null) {
+                                shareButton.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.BOTTOM, 16, 0, 16, 72));
+                                scanButtonWrap.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.BOTTOM, 16, 0, 16, 16));
+                            } else {
+                                shareButton.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.BOTTOM, 16, 0, 16, 16));
+                            }
+                            super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+                        }
+                        return;
+                    }
                     if (isPortrait) {
                         recyclerView.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 104, Gravity.START, 0, 44, 0, 0));
                         recyclerView.setPadding(recyclerPadding, 0, recyclerPadding, 0);
@@ -1637,12 +1652,18 @@ public class QrActivity extends BaseFragment {
         }
 
         public void onCreate() {
-            ChatThemeController chatThemeController = ChatThemeController.getInstance(currentAccount);
-            chatThemeController.preloadAllWallpaperThumbs(true);
-            chatThemeController.preloadAllWallpaperThumbs(false);
-            chatThemeController.preloadAllWallpaperImages(true);
-            chatThemeController.preloadAllWallpaperImages(false);
             NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.emojiLoaded);
+        }
+
+        public void setSingleThemeMode() {
+            singleThemeMode = true;
+            titleView.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.START, 0, 0, 16, 0));
+            recyclerView.setVisibility(View.GONE);
+            progressView.setVisibility(View.GONE);
+            darkThemeView.setVisibility(View.GONE);
+            topShadow.setVisibility(View.GONE);
+            bottomShadow.setVisibility(View.GONE);
+            rootLayout.requestLayout();
         }
 
         @SuppressLint("NotifyDataSetChanged")

@@ -246,6 +246,17 @@ public class SlideIntChooseView extends FrameLayout {
         setMaxTextEmojiSaturation(value >= options.getMax() ? 1f : 0f, animated);
     }
 
+    @Override
+    protected void dispatchDraw(android.graphics.Canvas canvas) {
+        minText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText, resourcesProvider));
+        valueText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteValueText, resourcesProvider));
+        int maxColorKey = options != null && value >= options.getMax()
+                ? Theme.key_windowBackgroundWhiteValueText
+                : Theme.key_windowBackgroundWhiteGrayText;
+        maxText.setTextColor(Theme.getColor(maxColorKey, resourcesProvider));
+        super.dispatchDraw(canvas);
+    }
+
     private float maxTextEmojiSaturation;
     private float toMaxTextEmojiSaturation = -1f;
     private ValueAnimator maxTextEmojiSaturationAnimator;

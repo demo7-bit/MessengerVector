@@ -153,6 +153,7 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
 
     @Override
     public View createView(Context context) {
+        Theme.applyTheme(Theme.getActiveTheme(), false, Theme.isCurrentThemeNight());
         titles[0] = StringHelper.replaceTelegram(LocaleController.getString(R.string.Page1Title));
 
 
@@ -438,6 +439,9 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
     @Override
     public void onResume() {
         super.onResume();
+        if (fragmentView != null && startMessagingButtonBackground != null) {
+            updateColors(true);
+        }
         if (justCreated) {
             if (LocaleController.isRTL) {
                 viewPager.setCurrentItem(6);
@@ -961,37 +965,37 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
         if (logoDrawable != null) {
             logoDrawable.setColorFilter(Theme.multAlpha(getThemedColor(Theme.key_actionBarDefaultTitle), 0.9f), PorterDuff.Mode.MULTIPLY);
         }
-        fragmentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-        switchLanguageTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
-        startMessagingButton.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText));
-        startMessagingButton.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(24), Color.TRANSPARENT, Theme.getColor(Theme.key_featuredStickers_addButtonPressed)));
-        darkThemeDrawable.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton), PorterDuff.Mode.SRC_IN));
+        fragmentView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+        switchLanguageTextView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueText4));
+        startMessagingButton.setTextColor(getThemedColor(Theme.key_featuredStickers_buttonText));
+        startMessagingButton.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(Theme.MODERN_BUTTON_RADIUS_DP), Color.TRANSPARENT, getThemedColor(Theme.key_featuredStickers_addButtonPressed)));
+        darkThemeDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_featuredStickers_addButton), PorterDuff.Mode.SRC_IN));
         bottomPages.invalidate();
         if (fromTheme) {
             if (eglThread != null) {
                 eglThread.postRunnable(()->{
-                    eglThread.loadTexture(R.drawable.intro_powerful_mask, 17, Theme.getColor(Theme.key_windowBackgroundWhite), true);
+                    eglThread.loadTexture(R.drawable.intro_powerful_mask, 17, getThemedColor(Theme.key_windowBackgroundWhite), true);
                     eglThread.updatePowerfulTextures();
 
                     eglThread.loadTexture(eglThread.telegramMaskProvider, 23, true);
                     eglThread.updateTelegramTextures();
 
-                    Intro.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+                    Intro.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
                 });
             }
             for (int i = 0; i < viewPager.getChildCount(); i++) {
                 View ch = viewPager.getChildAt(i);
                 TextView headerTextView = ch.findViewWithTag(pagerHeaderTag);
-                headerTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+                headerTextView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
                 TextView messageTextView = ch.findViewWithTag(pagerMessageTag);
-                messageTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+                messageTextView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
             }
-        } else Intro.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        } else Intro.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
     }
 
     @Override
     public boolean isLightStatusBar() {
-        int color = Theme.getColor(Theme.key_windowBackgroundWhite, null, true);
+        int color = getThemedColor(Theme.key_windowBackgroundWhite);
         return ColorUtils.calculateLuminance(color) > 0.7f;
     }
 }
